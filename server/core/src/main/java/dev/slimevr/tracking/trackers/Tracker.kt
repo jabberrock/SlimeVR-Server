@@ -6,6 +6,8 @@ import dev.slimevr.tracking.trackers.TrackerPosition.Companion.getByDesignation
 import dev.slimevr.tracking.trackers.udp.IMUType
 import dev.slimevr.tracking.trackers.udp.MagnetometerStatus
 import io.eiren.util.BufferedTimer
+import io.github.axisangles.ktmath.EulerAngles
+import io.github.axisangles.ktmath.EulerOrder
 import io.github.axisangles.ktmath.Quaternion
 import io.github.axisangles.ktmath.Vector3
 import solarxr_protocol.datatypes.DeviceIdT
@@ -70,7 +72,9 @@ class Tracker @JvmOverloads constructor(
 ) {
 	private val timer = BufferedTimer(1f)
 	private var timeAtLastUpdate: Long = System.currentTimeMillis()
-	private var _rotation = Quaternion.IDENTITY
+	private var _rotation = Quaternion.IDENTITY // rotation that is reported by the physical tracker
+	private var _lastRotation = Quaternion.IDENTITY // last rotation in world space
+	private var _extraYaw = 0.0f;
 	private var _acceleration = Vector3.NULL
 	var position = Vector3.NULL
 	val resetsHandler: TrackerResetsHandler = TrackerResetsHandler(this)
@@ -291,6 +295,7 @@ class Tracker @JvmOverloads constructor(
 				status = TrackerStatus.TIMED_OUT
 			}
 		}
+		_lastRotation = getRotation() // Store the last rotation before advancing the filtering handler
 		filteringHandler.update()
 		resetsHandler.update()
 	}
@@ -327,6 +332,8 @@ class Tracker @JvmOverloads constructor(
 			_rotation
 		}
 
+		rot = EulerAngles(EulerOrder.YZX, 0.0f, _extraYaw, 0.0f).toQuaternion() * rot
+
 		// Reset if needed and is not computed and internal
 		if (needsReset && !(isComputed && isInternal)) {
 			// Adjust to reset, mounting and drift compensation
@@ -359,6 +366,8 @@ class Tracker @JvmOverloads constructor(
 			_rotation
 		}
 
+		rot = EulerAngles(EulerOrder.YZX, 0.0f, _extraYaw, 0.0f).toQuaternion() * rot
+
 		// Reset if needed or is a computed tracker besides head
 		if (needsReset && !(isComputed && trackerPosition != TrackerPosition.HEAD)) {
 			// Adjust to reset and mounting
@@ -379,6 +388,13 @@ class Tracker @JvmOverloads constructor(
 	 */
 	fun setRotation(rotation: Quaternion) {
 		this._rotation = rotation
+	}
+
+	fun getLastRotation() = this._lastRotation
+
+	fun applyYawRotation(yaw: Float): Float {
+		this._extraYaw += yaw
+		return this._extraYaw
 	}
 
 	/**

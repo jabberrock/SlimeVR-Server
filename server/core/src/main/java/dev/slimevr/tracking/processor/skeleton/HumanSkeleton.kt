@@ -13,6 +13,7 @@ import dev.slimevr.tracking.trackers.TrackerRole
 import dev.slimevr.tracking.trackers.TrackerUtils.getFirstAvailableTracker
 import dev.slimevr.tracking.trackers.TrackerUtils.getTrackerForSkeleton
 import dev.slimevr.util.ann.VRServerThread
+import io.eiren.math.FloatMath.clamp
 import io.eiren.util.ann.ThreadSafe
 import io.eiren.util.collections.FastList
 import io.eiren.util.logging.LogManager
@@ -28,6 +29,7 @@ import io.github.axisangles.ktmath.Vector3.Companion.NULL
 import io.github.axisangles.ktmath.Vector3.Companion.POS_Y
 import solarxr_protocol.rpc.StatusData
 import java.lang.IllegalArgumentException
+import kotlin.math.*
 import kotlin.properties.Delegates
 
 class HumanSkeleton(
@@ -360,6 +362,7 @@ class HumanSkeleton(
 	fun updatePose() {
 		tapDetectionManager.update()
 
+		adjustTrackerRotations()
 		updateTransforms()
 		updateBones()
 		updateComputedTrackers()
@@ -380,6 +383,54 @@ class HumanSkeleton(
 		headBone.update()
 		if (isTrackingLeftArmFromController) leftHandTrackerBone.update()
 		if (isTrackingRightArmFromController) rightHandTrackerBone.update()
+	}
+
+	private fun adjustTrackerRotations() {
+		var parent = headTracker;
+		if (parent == null) {
+			return;
+		}
+
+		var tracker = upperChestTracker
+		if (tracker != null) {
+			adjustTrackerRotation(tracker, parent);
+			parent = tracker
+		}
+
+		tracker = chestTracker
+		if (tracker != null) {
+			adjustTrackerRotation(tracker, parent);
+			parent = tracker;
+		}
+
+		tracker = hipTracker
+		if (tracker != null) {
+			adjustTrackerRotation(tracker, parent);
+			parent = tracker;
+		}
+	}
+
+	private fun yaw(rotation: Quaternion) : Float {
+		return rotation.toEulerAngles(EulerOrder.YZX).y;
+	}
+
+	private fun adjustTrackerRotation(tracker: Tracker, parent: Tracker) {
+		val trackerRot = tracker.getRotation()
+		val lastTrackerRot = tracker.getLastRotation()
+		val parentRot = parent.getRotation()
+
+		val trackerYawChange = yaw(trackerRot * lastTrackerRot.inv())
+		val parentToTrackerYaw = yaw(trackerRot * parentRot.inv())
+
+		// Always adjust the tracker's rotation towards the parent's center
+		// But no more than half the actual tracker yaw change (so that we don't turn in the opposite direction) and
+		// no more than the null-bias we expect from gyroscope
+		val adjustYaw = -sign(parentToTrackerYaw) * clamp(0.8f * abs(trackerYawChange), 0.01f / 1000.0f, 0.05f / 1000.0f)
+		val totalYaw = tracker.applyYawRotation(adjustYaw)
+
+		if (tracker == chestTracker) {
+			println("Chest tracker parentToTrackerYaw=$parentToTrackerYaw adjustYaw=$adjustYaw totalYaw=$totalYaw")
+		}
 	}
 
 	/**
