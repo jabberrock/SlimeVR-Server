@@ -286,6 +286,7 @@ class HumanPoseManager(val server: VRServer?) {
 
 	fun loadFromConfig(configManager: ConfigManager) {
 		skeletonConfigManager.loadFromConfig(configManager)
+		skeleton.yawCorrectionInDegPerSec = configManager.vrConfig.yawCorrectionConfig.amountInDegPerSec
 	}
 
 	@VRServerThread
@@ -661,6 +662,10 @@ class HumanPoseManager(val server: VRServer?) {
 				.getToggles()[SkeletonConfigToggles.SKATING_CORRECTION.configKey] = value
 			server.configManager.saveConfig()
 		}
+	}
+
+	fun setYawCorrectionInDegPerSec(value: Float) {
+		skeleton.yawCorrectionInDegPerSec = value
 	}
 
 	fun setLegTweaksStateTemp(

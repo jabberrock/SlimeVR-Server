@@ -349,6 +349,17 @@ public class RPCSettingsBuilder {
 			);
 	}
 
+	public static int createYawCorrectionSettings(
+		FlatBufferBuilder fbb,
+		YawCorrectionConfig yawCorrectionConfig
+	) {
+		return YawCorrectionSettings
+			.createYawCorrectionSettings(
+				fbb,
+				yawCorrectionConfig.getAmountInDegPerSec()
+			);
+	}
+
 	public static int createSettingsResponse(FlatBufferBuilder fbb, VRServer server) {
 		ISteamVRBridge bridge = server.getVRBridge(ISteamVRBridge.class);
 
@@ -401,6 +412,11 @@ public class RPCSettingsBuilder {
 					.createArmsResetModeSettings(
 						fbb,
 						server.configManager.getVrConfig().getResetsConfig()
+					),
+				RPCSettingsBuilder
+					.createYawCorrectionSettings(
+						fbb,
+						server.configManager.getVrConfig().getYawCorrectionConfig()
 					)
 			);
 	}
