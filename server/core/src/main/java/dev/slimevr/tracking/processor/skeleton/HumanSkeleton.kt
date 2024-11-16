@@ -13,6 +13,8 @@ import dev.slimevr.tracking.trackers.TrackerRole
 import dev.slimevr.tracking.trackers.TrackerUtils.getFirstAvailableTracker
 import dev.slimevr.tracking.trackers.TrackerUtils.getTrackerForSkeleton
 import dev.slimevr.util.ann.VRServerThread
+import io.eiren.math.FloatMath.toDegrees
+import io.eiren.math.FloatMath.toRad
 import io.eiren.util.ann.ThreadSafe
 import io.eiren.util.collections.FastList
 import io.eiren.util.logging.LogManager
@@ -28,6 +30,7 @@ import io.github.axisangles.ktmath.Vector3.Companion.NULL
 import io.github.axisangles.ktmath.Vector3.Companion.POS_Y
 import solarxr_protocol.rpc.StatusData
 import java.lang.IllegalArgumentException
+import kotlin.math.*
 import kotlin.properties.Delegates
 
 class HumanSkeleton(
@@ -141,6 +144,7 @@ class HumanSkeleton(
 
 	// Others
 	private var pauseTracking = false // Pauses skeleton tracking if true, resumes skeleton tracking if false
+	var yawCorrectionInDegPerSec = 0.0f
 
 	// Modules
 	var legTweaks = LegTweaks(this)
@@ -360,6 +364,7 @@ class HumanSkeleton(
 	fun updatePose() {
 		tapDetectionManager.update()
 
+		updateTrackerYawCorrections()
 		updateTransforms()
 		updateBones()
 		updateComputedTrackers()
@@ -380,6 +385,74 @@ class HumanSkeleton(
 		headBone.update()
 		if (isTrackingLeftArmFromController) leftHandTrackerBone.update()
 		if (isTrackingRightArmFromController) rightHandTrackerBone.update()
+	}
+
+	private fun updateTrackerYawCorrections() {
+		val trackersToAlign = listOf(
+			headTracker,
+			upperChestTracker,
+			chestTracker,
+			waistTracker,
+			hipTracker
+		);
+
+		var parentTracker: Tracker? = null;
+		for (tracker in trackersToAlign) {
+			if (tracker == null) {
+				continue;
+			}
+
+			if (parentTracker == null) {
+				parentTracker = tracker;
+				continue;
+			}
+
+			updateTrackerYawCorrection(tracker, parentTracker);
+			parentTracker = tracker;
+		}
+	}
+
+	private fun isTrackerPointingUp(trackerRot: Quaternion, maxDeviationInRad: Float): Boolean {
+		val trackerUp = trackerRot.sandwich(POS_Y)
+		return trackerUp.angleTo(POS_Y) < maxDeviationInRad;
+	}
+
+	private fun updateTrackerYawCorrection(tracker: Tracker, parentTracker: Tracker) {
+		val trackerRot = tracker.getRotation()
+		val parentTrackerRot = parentTracker.getRotation()
+
+		// For now, we only handle trackers which are relatively "upright", i.e. in the
+		// standing position, or sitting position for trackers that are high up on the
+		// spine. When someone is lying down, they could be curled up such that the yaws
+		// don't necessarily align.
+		val maxDeviationInRad = toRad(30.0f)
+		if (!isTrackerPointingUp(trackerRot, maxDeviationInRad) ||
+			!isTrackerPointingUp(parentTrackerRot, maxDeviationInRad)) {
+			return;
+		}
+
+		val deltaRot = trackerRot * parentTrackerRot.inv()
+		val deltaYawInRad = deltaRot.toEulerAngles(EulerOrder.YZX).y
+
+		// Amount of yaw should be roughly the maximum yaw bias of the gyroscope. If it
+		// is too small, the gyroscope will overpower the correction and the skeleton
+		// will drift. If it is too big, the player will notice that the skeleton is
+		// rotating when the player doesn't face forward for a long time.
+		val serverUpdateFreqInHz = 1000.0f; // FIXME: Use actual server update rate
+		val adjustYawInRad = -sign(deltaYawInRad) * toRad(yawCorrectionInDegPerSec) / serverUpdateFreqInHz
+
+		// Adjust the tracker's yaw towards the parent tracker's yaw
+		tracker.yawCorrectionInRad += adjustYawInRad
+
+		 println("Tracker ${tracker.name} deltaYaw=${toDegrees(deltaYawInRad)} adjustYaw=${toDegrees(adjustYawInRad)} yawCorrection=${toDegrees(tracker.yawCorrectionInRad)}")
+	}
+
+	private fun resetTrackerYawCorrections() {
+		for (tracker in trackersToReset) {
+			if (tracker != null) {
+				tracker.yawCorrectionInRad = 0.0f
+			}
+		}
 	}
 
 	/**
@@ -1077,6 +1150,7 @@ class HumanSkeleton(
 		}
 		legTweaks.resetBuffer()
 		localizer.reset()
+		resetTrackerYawCorrections();
 		LogManager.info("[HumanSkeleton] Reset: full ($resetSourceName)")
 	}
 
@@ -1098,6 +1172,7 @@ class HumanSkeleton(
 			}
 		}
 		legTweaks.resetBuffer()
+		resetTrackerYawCorrections();
 		LogManager.info("[HumanSkeleton] Reset: yaw ($resetSourceName)")
 	}
 
@@ -1126,6 +1201,7 @@ class HumanSkeleton(
 		}
 		legTweaks.resetBuffer()
 		localizer.reset()
+		resetTrackerYawCorrections();
 		LogManager.info("[HumanSkeleton] Reset: mounting ($resetSourceName)")
 	}
 
@@ -1142,6 +1218,7 @@ class HumanSkeleton(
 			}
 		}
 		legTweaks.resetBuffer()
+		resetTrackerYawCorrections();
 		LogManager.info("[HumanSkeleton] Clear: mounting ($resetSourceName)")
 	}
 

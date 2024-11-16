@@ -373,6 +373,8 @@ settings-general-tracker_mechanics-use_mag_on_all_trackers-description =
     Uses magnetometer on all trackers that have a compatible firmware for it, reducing drift in stable magnetic environments.
     Can be disabled per tracker in the tracker's settings. <b>Please don't shutdown any of the trackers while toggling this!</b>
 settings-general-tracker_mechanics-use_mag_on_all_trackers-label = Use magnetometer on trackers
+settings-general-tracker_mechanics-spine_yaw_compensation = Spine Yaw Compensation
+settings-general-tracker_mechanics-spine_yaw_compensation-amount = Amount
 
 ## FK/Tracking settings
 settings-general-fk_settings = Tracking settings

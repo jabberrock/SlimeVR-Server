@@ -6,6 +6,8 @@ import dev.slimevr.tracking.trackers.TrackerPosition.Companion.getByDesignation
 import dev.slimevr.tracking.trackers.udp.IMUType
 import dev.slimevr.tracking.trackers.udp.MagnetometerStatus
 import io.eiren.util.BufferedTimer
+import io.github.axisangles.ktmath.EulerAngles
+import io.github.axisangles.ktmath.EulerOrder
 import io.github.axisangles.ktmath.Quaternion
 import io.github.axisangles.ktmath.Vector3
 import solarxr_protocol.datatypes.DeviceIdT
@@ -83,6 +85,7 @@ class Tracker @JvmOverloads constructor(
 	var customName: String? = null
 	var magStatus: MagnetometerStatus = magStatus
 		private set
+	var yawCorrectionInRad: Float = 0.0f
 
 	/**
 	 * If the tracker has gotten disconnected after it was initialized first time
@@ -327,6 +330,8 @@ class Tracker @JvmOverloads constructor(
 			_rotation
 		}
 
+		rot = EulerAngles(EulerOrder.YZX, 0.0f, yawCorrectionInRad, 0.0f).toQuaternion() * rot
+
 		// Reset if needed and is not computed and internal
 		if (needsReset && !(isComputed && isInternal)) {
 			// Adjust to reset, mounting and drift compensation
@@ -358,6 +363,8 @@ class Tracker @JvmOverloads constructor(
 			// Get unfiltered rotation
 			_rotation
 		}
+
+		rot = EulerAngles(EulerOrder.YZX, 0.0f, yawCorrectionInRad, 0.0f).toQuaternion() * rot
 
 		// Reset if needed or is a computed tracker besides head
 		if (needsReset && !(isComputed && trackerPosition != TrackerPosition.HEAD)) {

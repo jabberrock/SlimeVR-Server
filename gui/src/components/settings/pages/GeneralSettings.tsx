@@ -16,6 +16,7 @@ import {
   SettingsResponseT,
   SteamVRTrackersSettingT,
   TapDetectionSettingsT,
+  YawCorrectionSettingsT,
 } from 'solarxr-protocol';
 import { useConfig } from '@/hooks/config';
 import { useWebsocketAPI } from '@/hooks/websocket-api';
@@ -101,6 +102,9 @@ interface SettingsForm {
     saveMountingReset: boolean;
     resetHmdPitch: boolean;
   };
+  yawCorrectionSettings: {
+    amountInDegPerSec: number;
+  };
 }
 
 const defaultValues: SettingsForm = {
@@ -165,6 +169,9 @@ const defaultValues: SettingsForm = {
     saveMountingReset: false,
     resetHmdPitch: false,
   },
+  yawCorrectionSettings: {
+    amountInDegPerSec: 0.0,
+  },
 };
 
 export function GeneralSettings() {
@@ -184,6 +191,10 @@ export function GeneralSettings() {
     unitDisplay: 'narrow',
     maximumFractionDigits: 2,
   });
+  const degreeFormat = new Intl.NumberFormat(currentLocales, {
+    style: 'unit',
+    unit: 'degree',
+  })
 
   const { sendRPCPacket, useRPCPacket } = useWebsocketAPI();
   const { reset, control, watch, handleSubmit, getValues, setValue } =
@@ -290,6 +301,10 @@ export function GeneralSettings() {
     driftCompensation.amount = values.driftCompensation.amount;
     driftCompensation.maxResets = values.driftCompensation.maxResets;
     settings.driftCompensation = driftCompensation;
+
+    const yawCorrectionSettings = new YawCorrectionSettingsT()
+    yawCorrectionSettings.amountInDegPerSec = values.yawCorrectionSettings.amountInDegPerSec;
+    settings.yawCorrectionSettings = yawCorrectionSettings
 
     if (values.resetsSettings) {
       const resetsSettings = new ResetsSettingsT();
@@ -412,6 +427,10 @@ export function GeneralSettings() {
 
     if (settings.resetsSettings) {
       formData.resetsSettings = settings.resetsSettings;
+    }
+
+    if (settings.yawCorrectionSettings) {
+      formData.yawCorrectionSettings = settings.yawCorrectionSettings;
     }
 
     reset({ ...getValues(), ...formData });
@@ -813,6 +832,24 @@ export function GeneralSettings() {
               settingType="general"
               id="mechanics-magnetometer"
             />
+            <div className="flex flex-col pt-4 pb-4"></div>
+            <Typography bold>{l10n.getString(
+                'settings-general-tracker_mechanics-spine_yaw_compensation'
+              )}
+            </Typography>
+            <div className="flex gap-5 pt-5 md:flex-row flex-col">
+              <NumberSelector
+                control={control}
+                name="yawCorrectionSettings.amountInDegPerSec"
+                label={l10n.getString(
+                  'settings-general-tracker_mechanics-spine_yaw_compensation-amount'
+                )}
+                valueLabelFormat={(value) => degreeFormat.format(value)}
+                min={0.0}
+                max={2.0}
+                step={0.1}
+              />
+            </div>
           </>
         </SettingsPagePaneLayout>
         <SettingsPagePaneLayout

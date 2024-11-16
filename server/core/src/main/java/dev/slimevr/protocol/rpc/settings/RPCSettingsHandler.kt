@@ -345,6 +345,14 @@ class RPCSettingsHandler(var rpcHandler: RPCHandler, var api: ProtocolAPI) {
 			resetsConfig.updateTrackersResetsSettings()
 		}
 
+		if (req.yawCorrectionSettings() != null) {
+			val yawCorrectionConfig = api.server.configManager
+				.vrConfig
+				.yawCorrectionConfig
+			yawCorrectionConfig.amountInDegPerSec = req.yawCorrectionSettings().amountInDegPerSec()
+			api.server.humanPoseManager.setYawCorrectionInDegPerSec(yawCorrectionConfig.amountInDegPerSec)
+		}
+
 		api.server.configManager.saveConfig()
 	}
 
@@ -361,7 +369,7 @@ class RPCSettingsHandler(var rpcHandler: RPCHandler, var api: ProtocolAPI) {
 			val settings = SettingsResponse
 				.createSettingsResponse(
 					fbb,
-					RPCSettingsBuilder.createSteamVRSettings(fbb, bridge), 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					RPCSettingsBuilder.createSteamVRSettings(fbb, bridge), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 				)
 			val outbound =
 				rpcHandler.createRPCMessage(fbb, RpcMessage.SettingsResponse, settings)
