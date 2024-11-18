@@ -13,7 +13,6 @@ import dev.slimevr.tracking.trackers.TrackerRole
 import dev.slimevr.tracking.trackers.TrackerUtils.getFirstAvailableTracker
 import dev.slimevr.tracking.trackers.TrackerUtils.getTrackerForSkeleton
 import dev.slimevr.util.ann.VRServerThread
-import io.eiren.math.FloatMath.toDegrees
 import io.eiren.math.FloatMath.toRad
 import io.eiren.util.ann.ThreadSafe
 import io.eiren.util.collections.FastList
@@ -530,28 +529,28 @@ class HumanSkeleton(
 			upperChestTracker,
 			chestTracker,
 			waistTracker,
-			hipTracker
-		);
+			hipTracker,
+		)
 
-		var parentTracker: Tracker? = null;
+		var parentTracker: Tracker? = null
 		for (tracker in trackersToAlign) {
 			if (tracker == null) {
-				continue;
+				continue
 			}
 
 			if (parentTracker == null) {
-				parentTracker = tracker;
-				continue;
+				parentTracker = tracker
+				continue
 			}
 
-			updateTrackerYawCorrection(tracker, parentTracker);
-			parentTracker = tracker;
+			updateTrackerYawCorrection(tracker, parentTracker)
+			parentTracker = tracker
 		}
 	}
 
 	private fun isTrackerPointingUp(trackerRot: Quaternion, maxDeviationInRad: Float): Boolean {
 		val trackerUp = trackerRot.sandwich(POS_Y)
-		return trackerUp.angleTo(POS_Y) < maxDeviationInRad;
+		return trackerUp.angleTo(POS_Y) < maxDeviationInRad
 	}
 
 	private fun updateTrackerYawCorrection(tracker: Tracker, parentTracker: Tracker) {
@@ -564,8 +563,9 @@ class HumanSkeleton(
 		// don't necessarily align.
 		val maxDeviationInRad = toRad(30.0f)
 		if (!isTrackerPointingUp(trackerRot, maxDeviationInRad) ||
-			!isTrackerPointingUp(parentTrackerRot, maxDeviationInRad)) {
-			return;
+			!isTrackerPointingUp(parentTrackerRot, maxDeviationInRad)
+		) {
+			return
 		}
 
 		val deltaRot = trackerRot * parentTrackerRot.inv()
@@ -1559,7 +1559,7 @@ class HumanSkeleton(
 		}
 		legTweaks.resetBuffer()
 		localizer.reset()
-		resetTrackerYawCorrections();
+		resetTrackerYawCorrections()
 		LogManager.info("[HumanSkeleton] Reset: full ($resetSourceName)")
 	}
 
@@ -1581,7 +1581,7 @@ class HumanSkeleton(
 			}
 		}
 		legTweaks.resetBuffer()
-		resetTrackerYawCorrections();
+		resetTrackerYawCorrections()
 		LogManager.info("[HumanSkeleton] Reset: yaw ($resetSourceName)")
 	}
 
@@ -1610,7 +1610,7 @@ class HumanSkeleton(
 		}
 		legTweaks.resetBuffer()
 		localizer.reset()
-		resetTrackerYawCorrections();
+		resetTrackerYawCorrections()
 		LogManager.info("[HumanSkeleton] Reset: mounting ($resetSourceName)")
 	}
 
@@ -1627,7 +1627,7 @@ class HumanSkeleton(
 			}
 		}
 		legTweaks.resetBuffer()
-		resetTrackerYawCorrections();
+		resetTrackerYawCorrections()
 		LogManager.info("[HumanSkeleton] Clear: mounting ($resetSourceName)")
 	}
 

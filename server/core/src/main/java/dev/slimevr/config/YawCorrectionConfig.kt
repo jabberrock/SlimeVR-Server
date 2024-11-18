@@ -5,5 +5,7 @@ class YawCorrectionConfig {
 
 	var amountInDegPerSec: Float
 		get() = _amountInDegPerSec
-		set(value) { _amountInDegPerSec = if (value > 0.0f) value else 0.0f }
+		set(value) {
+			_amountInDegPerSec = if (value > 0.0f) value else 0.0f
+		}
 }
