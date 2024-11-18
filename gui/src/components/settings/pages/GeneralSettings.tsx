@@ -194,7 +194,7 @@ export function GeneralSettings() {
   const degreeFormat = new Intl.NumberFormat(currentLocales, {
     style: 'unit',
     unit: 'degree',
-  })
+  });
 
   const { sendRPCPacket, useRPCPacket } = useWebsocketAPI();
   const { reset, control, watch, handleSubmit, getValues, setValue } =
@@ -302,9 +302,10 @@ export function GeneralSettings() {
     driftCompensation.maxResets = values.driftCompensation.maxResets;
     settings.driftCompensation = driftCompensation;
 
-    const yawCorrectionSettings = new YawCorrectionSettingsT()
-    yawCorrectionSettings.amountInDegPerSec = values.yawCorrectionSettings.amountInDegPerSec;
-    settings.yawCorrectionSettings = yawCorrectionSettings
+    const yawCorrectionSettings = new YawCorrectionSettingsT();
+    yawCorrectionSettings.amountInDegPerSec =
+      values.yawCorrectionSettings.amountInDegPerSec;
+    settings.yawCorrectionSettings = yawCorrectionSettings;
 
     if (values.resetsSettings) {
       const resetsSettings = new ResetsSettingsT();
@@ -833,7 +834,8 @@ export function GeneralSettings() {
               id="mechanics-magnetometer"
             />
             <div className="flex flex-col pt-4 pb-4"></div>
-            <Typography bold>{l10n.getString(
+            <Typography bold>
+              {l10n.getString(
                 'settings-general-tracker_mechanics-spine_yaw_compensation'
               )}
             </Typography>
