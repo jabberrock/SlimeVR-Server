@@ -4,6 +4,7 @@ import com.jme3.math.FastMath
 import dev.slimevr.VRServer
 import dev.slimevr.VRServer.Companion.getNextLocalTrackerId
 import dev.slimevr.config.ConfigManager
+import dev.slimevr.config.YawCorrectionConfig
 import dev.slimevr.tracking.processor.config.SkeletonConfigManager
 import dev.slimevr.tracking.processor.config.SkeletonConfigOffsets
 import dev.slimevr.tracking.processor.config.SkeletonConfigToggles
@@ -286,7 +287,7 @@ class HumanPoseManager(val server: VRServer?) {
 
 	fun loadFromConfig(configManager: ConfigManager) {
 		skeletonConfigManager.loadFromConfig(configManager)
-		skeleton.yawCorrectionInDegPerSec = configManager.vrConfig.yawCorrectionConfig.amountInDegPerSec
+		setYawCorrection(configManager.vrConfig.yawCorrectionConfig)
 	}
 
 	@VRServerThread
@@ -664,8 +665,8 @@ class HumanPoseManager(val server: VRServer?) {
 		}
 	}
 
-	fun setYawCorrectionInDegPerSec(value: Float) {
-		skeleton.yawCorrectionInDegPerSec = value
+	fun setYawCorrection(yawCorrectionConfig: YawCorrectionConfig) {
+		skeleton.yawCorrectionInDegPerSec = if (yawCorrectionConfig.enabled) yawCorrectionConfig.amountInDegPerSec else 0.0f
 	}
 
 	fun setLegTweaksStateTemp(

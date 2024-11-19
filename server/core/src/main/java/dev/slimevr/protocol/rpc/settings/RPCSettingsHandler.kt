@@ -349,8 +349,9 @@ class RPCSettingsHandler(var rpcHandler: RPCHandler, var api: ProtocolAPI) {
 			val yawCorrectionConfig = api.server.configManager
 				.vrConfig
 				.yawCorrectionConfig
+			yawCorrectionConfig.enabled = req.yawCorrectionSettings().enabled()
 			yawCorrectionConfig.amountInDegPerSec = req.yawCorrectionSettings().amountInDegPerSec()
-			api.server.humanPoseManager.setYawCorrectionInDegPerSec(yawCorrectionConfig.amountInDegPerSec)
+			api.server.humanPoseManager.setYawCorrection(yawCorrectionConfig)
 		}
 
 		api.server.configManager.saveConfig()

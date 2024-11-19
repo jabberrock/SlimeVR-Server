@@ -543,6 +543,10 @@ class HumanSkeleton(
 				continue
 			}
 
+			if (!tracker.isImu()) {
+				continue
+			}
+
 			updateTrackerYawCorrection(tracker, parentTracker)
 			parentTracker = tracker
 		}
@@ -575,8 +579,7 @@ class HumanSkeleton(
 		// is too small, the gyroscope will overpower the correction and the skeleton
 		// will drift. If it is too big, the player will notice that the skeleton is
 		// rotating when the player doesn't face forward for a long time.
-		val serverUpdateFreqInHz = 1000.0f; // FIXME: Use actual server update rate
-		val adjustYawInRad = -sign(deltaYawInRad) * toRad(yawCorrectionInDegPerSec) / serverUpdateFreqInHz
+		val adjustYawInRad = -sign(deltaYawInRad) * toRad(yawCorrectionInDegPerSec) * VRServer.instance.fpsTimer.timePerFrame
 
 		// Adjust the tracker's yaw towards the parent tracker's yaw
 		tracker.yawCorrectionInRad += adjustYawInRad

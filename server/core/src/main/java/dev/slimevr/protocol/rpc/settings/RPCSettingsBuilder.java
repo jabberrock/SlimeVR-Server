@@ -356,6 +356,7 @@ public class RPCSettingsBuilder {
 		return YawCorrectionSettings
 			.createYawCorrectionSettings(
 				fbb,
+				yawCorrectionConfig.getEnabled(),
 				yawCorrectionConfig.getAmountInDegPerSec()
 			);
 	}

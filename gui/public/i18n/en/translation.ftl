@@ -407,7 +407,9 @@ settings-general-tracker_mechanics-spine_yaw_compensation = Keep Spine Aligned
 settings-general-tracker_mechanics-spine_yaw_compensation-description =
     Prevents the spine trackers from drifting, by nudging them to stay aligned to the headset.
     Players are usually standing facing forwards or walking forwards, where the spine trackers are aligned to the yaw of the headset. However due to yaw drift, the spine trackers will eventually rotate to the side, requiring a reset. This feature adds a small centering rotation to compensate for the yaw drift. (For now, this compensation only activates when your trackers are pointing "up", e.g. when you're standing or sitting straight up.)
-    The correction amount should be approximately the maximum yaw drift of your gyroscope (0.3 degrees/sec is a good default).
+settings-general-tracker_mechanics-spine_yaw_compensation-enabled-label = Enabled
+settings-general-tracker_mechanics-spine_yaw_compensation-amount-label = Amount
+settings-general-tracker_mechanics-spine_yaw_compensation-amount-description = The correction amount should be approximately the maximum yaw drift of your gyroscope (0.3 degrees/sec is a good default).
 
 ## FK/Tracking settings
 settings-general-fk_settings = Tracking settings

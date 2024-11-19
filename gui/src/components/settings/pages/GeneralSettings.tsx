@@ -103,6 +103,7 @@ interface SettingsForm {
     resetHmdPitch: boolean;
   };
   yawCorrectionSettings: {
+    enabled: boolean;
     amountInDegPerSec: number;
   };
 }
@@ -170,6 +171,7 @@ const defaultValues: SettingsForm = {
     resetHmdPitch: false,
   },
   yawCorrectionSettings: {
+    enabled: false,
     amountInDegPerSec: 0.0,
   },
 };
@@ -303,6 +305,7 @@ export function GeneralSettings() {
     settings.driftCompensation = driftCompensation;
 
     const yawCorrectionSettings = new YawCorrectionSettingsT();
+    yawCorrectionSettings.enabled = values.yawCorrectionSettings.enabled;
     yawCorrectionSettings.amountInDegPerSec =
       values.yawCorrectionSettings.amountInDegPerSec;
     settings.yawCorrectionSettings = yawCorrectionSettings;
@@ -851,15 +854,36 @@ export function GeneralSettings() {
                   </Typography>
                 ))}
             </div>
-            <div className="flex md:flex-row flex-col">
-              <NumberSelector
+            <div className="grid sm:grid-cols-1 gap-3 pb-4">
+              <CheckBox
+                variant="toggle"
+                outlined
                 control={control}
-                name="yawCorrectionSettings.amountInDegPerSec"
-                valueLabelFormat={(value) => degreeFormat.format(value)}
-                min={0.0}
-                max={2.0}
-                step={0.1}
+                name="yawCorrectionSettings.enabled"
+                label={l10n.getString(
+                  'settings-general-tracker_mechanics-spine_yaw_compensation-enabled-label'
+                )}
               />
+              <div>
+                <Typography bold>
+                  {l10n.getString(
+                    'settings-general-tracker_mechanics-spine_yaw_compensation-amount-label'
+                  )}
+                </Typography>
+                <Typography color="secondary">
+                  {l10n.getString(
+                    'settings-general-tracker_mechanics-spine_yaw_compensation-amount-description'
+                  )}
+                </Typography>
+                <NumberSelector
+                  control={control}
+                  name="yawCorrectionSettings.amountInDegPerSec"
+                  valueLabelFormat={(value) => degreeFormat.format(value)}
+                  min={0.0}
+                  max={2.0}
+                  step={0.05}
+                />
+              </div>
             </div>
           </>
         </SettingsPagePaneLayout>
