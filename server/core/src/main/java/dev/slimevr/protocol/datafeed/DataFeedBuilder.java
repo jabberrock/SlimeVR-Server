@@ -26,6 +26,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Math.toDegrees;
+
 
 public class DataFeedBuilder {
 
@@ -232,6 +234,17 @@ public class DataFeedBuilder {
 		}
 		if (mask.getTps()) {
 			TrackerData.addTps(fbb, (int) tracker.getTps());
+		}
+		if (mask.getYawCorrectionInDeg()) {
+			TrackerData
+				.addYawCorrectionInDeg(fbb, (float) toDegrees(tracker.getYawCorrectionInRad()));
+		}
+		if (mask.getAngleFromParentTrackerInDeg()) {
+			TrackerData
+				.addAngleFromParentTrackerInDeg(
+					fbb,
+					(float) toDegrees(tracker.getAngleFromParentTrackerInRad())
+				);
 		}
 
 		return TrackerData.endTrackerData(fbb);

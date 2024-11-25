@@ -16,6 +16,7 @@ import dev.slimevr.tracking.trackers.TrackerRole
 import dev.slimevr.tracking.trackers.TrackerStatus
 import dev.slimevr.trackingpause.TrackingPauseHandler
 import dev.slimevr.util.ann.VRServerThread
+import io.eiren.math.FloatMath.toDegrees
 import io.eiren.util.ann.ThreadSafe
 import io.eiren.util.collections.FastList
 import io.eiren.util.logging.LogManager
@@ -27,7 +28,6 @@ import solarxr_protocol.datatypes.DeviceIdT
 import solarxr_protocol.datatypes.TrackerIdT
 import solarxr_protocol.rpc.StatusData
 import solarxr_protocol.rpc.StatusDataUnion
-import solarxr_protocol.rpc.StatusUnassignedHMD
 import solarxr_protocol.rpc.StatusUnassignedHMDT
 import java.util.function.Consumer
 import kotlin.math.*
@@ -613,6 +613,13 @@ class HumanPoseManager(val server: VRServer?) {
 					.append(" deg (")
 					.append(Precision.round(driftPerMin, 4))
 					.append(" deg/min)")
+
+				if (tracker.resetsHandler.lastYawCorrectionInRad != 0.0f) {
+					trackersDriftText
+						.append(" (yaw correction ")
+						.append(toDegrees(tracker.resetsHandler.lastYawCorrectionInRad))
+						.append(" deg)")
+				}
 			}
 		}
 
@@ -665,8 +672,8 @@ class HumanPoseManager(val server: VRServer?) {
 		}
 	}
 
-	fun setYawCorrection(yawCorrectionConfig: YawCorrectionConfig) {
-		skeleton.yawCorrectionInDegPerSec = if (yawCorrectionConfig.enabled) yawCorrectionConfig.amountInDegPerSec else 0.0f
+	fun setYawCorrection(config: YawCorrectionConfig) {
+		skeleton.setYawCorrectionConfig(config)
 	}
 
 	fun setLegTweaksStateTemp(

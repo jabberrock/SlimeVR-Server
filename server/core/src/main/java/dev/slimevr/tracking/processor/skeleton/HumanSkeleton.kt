@@ -2,6 +2,7 @@ package dev.slimevr.tracking.processor.skeleton
 
 import com.jme3.math.FastMath
 import dev.slimevr.VRServer
+import dev.slimevr.config.YawCorrectionConfig
 import dev.slimevr.tracking.processor.Bone
 import dev.slimevr.tracking.processor.BoneType
 import dev.slimevr.tracking.processor.HumanPoseManager
@@ -11,8 +12,10 @@ import dev.slimevr.tracking.trackers.Tracker
 import dev.slimevr.tracking.trackers.TrackerPosition
 import dev.slimevr.tracking.trackers.TrackerRole
 import dev.slimevr.tracking.trackers.TrackerUtils.getFirstAvailableTracker
+import dev.slimevr.tracking.trackers.TrackerUtils.getLastAvailableTracker
 import dev.slimevr.tracking.trackers.TrackerUtils.getTrackerForSkeleton
 import dev.slimevr.util.ann.VRServerThread
+import io.eiren.math.FloatMath.PI
 import io.eiren.math.FloatMath.toRad
 import io.eiren.util.ann.ThreadSafe
 import io.eiren.util.collections.FastList
@@ -29,7 +32,6 @@ import io.github.axisangles.ktmath.Vector3.Companion.NULL
 import io.github.axisangles.ktmath.Vector3.Companion.POS_Y
 import solarxr_protocol.rpc.StatusData
 import java.lang.IllegalArgumentException
-import kotlin.math.*
 import kotlin.properties.Delegates
 
 class HumanSkeleton(
@@ -203,7 +205,7 @@ class HumanSkeleton(
 
 	// Others
 	private var pauseTracking = false // Pauses skeleton tracking if true, resumes skeleton tracking if false
-	var yawCorrectionInDegPerSec = 0.0f
+	private var yawCorrectionConfig = YawCorrectionConfig()
 
 	// Modules
 	var legTweaks = LegTweaks(this)
@@ -523,8 +525,36 @@ class HumanSkeleton(
 		if (isTrackingRightArmFromController) rightHandTrackerBone.update()
 	}
 
+	fun setYawCorrectionConfig(config: YawCorrectionConfig) {
+		yawCorrectionConfig = config
+		for (tracker in trackersToReset) {
+			if (tracker != null) {
+				tracker.yawCorrectionConfig = config
+			}
+		}
+	}
+
+	/**
+	 * Applies a small yaw correction to trackers each server tick, so that the skeleton
+	 * is pushed towards the facing-forward yaw-reset position.
+	 *
+	 * We expect players to usually be facing forward most of the time, for example when
+	 * standing, walking, sitting, or lying down, so this is a reasonable assumption.
+	 * This should compensate for gyroscope yaw drift.
+	 *
+	 * There is a risk of the virtual body gradually turning if the player looks to the
+	 * side for long periods of time. In this situation, the virtual body is not aligned
+	 * to the player's real body, but the virtual body will still look reasonable to
+	 * other players. This is still better than the status quo where the virtual body
+	 * can twist out of shape due to yaw drifts in different directions.
+	 */
 	private fun updateTrackerYawCorrections() {
-		val trackersToAlign = listOf(
+		if (!yawCorrectionConfig.enabled) {
+			return
+		}
+
+		val upperBodyTrackers = listOf(
+			neckTracker,
 			headTracker,
 			upperChestTracker,
 			chestTracker,
@@ -532,8 +562,55 @@ class HumanSkeleton(
 			hipTracker,
 		)
 
+		// The spine can bend left and right, so we want to nudge the trackers only when
+		// we are reasonably certain the spine is straight. If the spine is twisted
+		// beyond this angle, we just rely on the gyroscope yaw and hope that the player
+		// returns to a straight pose before yaw drift gets too big.
+		updateTrackerYawCorrections(upperBodyTrackers, false)
+
+		if (yawCorrectionConfig.alignLegTrackers) {
+			if (yawCorrectionConfig.alignLegTrackersToUpperBody) {
+				val upperBodyTracker = getLastAvailableTracker(*upperBodyTrackers.toTypedArray())
+				if (upperBodyTracker != null) {
+					leftUpperLegTracker?.let {
+						// The leg can rotate left and right from the hip, so we want to
+						// nudge the trackers only when we are reasonably certain they
+						// are aligned.
+						updateTrackerYawCorrection(it, upperBodyTracker, false)
+					}
+					rightUpperLegTracker?.let {
+						updateTrackerYawCorrection(it, upperBodyTracker, false)
+					}
+				}
+			}
+
+			val leftLegTrackers = listOf(
+				leftUpperLegTracker,
+				leftLowerLegTracker,
+				leftFootTracker,
+			)
+
+			// The knee locks the upper and lower into almost always being aligned
+			// along the Y-Z plane, so we can always nudge them to be aligned regardless
+			// of how misaligned they are. Feet aren't as strongly aligned, but they
+			// usually return to a relatively aligned position. The feet trackers have a
+			// tendency to noticeably yaw drift, so it's better that we always nudge
+			// them to be aligned.
+			updateTrackerYawCorrections(leftLegTrackers, true)
+
+			val rightLegTrackers = listOf(
+				rightUpperLegTracker,
+				rightLowerLegTracker,
+				rightFootTracker,
+			)
+
+			updateTrackerYawCorrections(rightLegTrackers, true)
+		}
+	}
+
+	private fun updateTrackerYawCorrections(trackers: List<Tracker?>, alwaysNudge: Boolean) {
 		var parentTracker: Tracker? = null
-		for (tracker in trackersToAlign) {
+		for (tracker in trackers) {
 			if (tracker == null) {
 				continue
 			}
@@ -547,42 +624,74 @@ class HumanSkeleton(
 				continue
 			}
 
-			updateTrackerYawCorrection(tracker, parentTracker)
+			updateTrackerYawCorrection(tracker, parentTracker, alwaysNudge)
 			parentTracker = tracker
 		}
 	}
 
-	private fun isTrackerPointingUp(trackerRot: Quaternion, maxDeviationInRad: Float): Boolean {
-		val trackerUp = trackerRot.sandwich(POS_Y)
-		return trackerUp.angleTo(POS_Y) < maxDeviationInRad
-	}
+	/**
+	 * Tries to keep two trackers aligned along their Y-Z plane, by adjusting the world
+	 * yaw of the tracker. We only adjust the world yaw because that is the only error
+	 * that comes from the IMU. (Pitch and roll are reasonably accurate due to the
+	 * accelerometer knowing which way is "down".)
+	 *
+	 * @param tracker Tracker to nudge
+	 * @param parentTracker Parent tracker to nudge the tracker towards
+	 * @param alwaysNudge Whether to always nudge the tracker, even if the tracker is
+	 * 		currently very un-aligned with the parent tracker
+	 */
+	private fun updateTrackerYawCorrection(tracker: Tracker, parentTracker: Tracker, alwaysNudge: Boolean) {
+		val trackerYZNormal = tracker.getRotation().sandwich(Vector3.POS_X)
+		val parentTrackerYZNormal = parentTracker.getRotation().sandwich(Vector3.POS_X)
+		tracker.angleFromParentTrackerInRad = trackerYZNormal.angleTo(parentTrackerYZNormal)
 
-	private fun updateTrackerYawCorrection(tracker: Tracker, parentTracker: Tracker) {
-		val trackerRot = tracker.getRotation()
-		val parentTrackerRot = parentTracker.getRotation()
-
-		// For now, we only handle trackers which are relatively "upright", i.e. in the
-		// standing position, or sitting position for trackers that are high up on the
-		// spine. When someone is lying down, they could be curled up such that the yaws
-		// don't necessarily align.
-		val maxDeviationInRad = toRad(30.0f)
-		if (!isTrackerPointingUp(trackerRot, maxDeviationInRad) ||
-			!isTrackerPointingUp(parentTrackerRot, maxDeviationInRad)
-		) {
+		// If the tracker's Y-Z plane is aligned to the yaw-plane (world X-Z plane), we
+		// should not nudge them, because the alignment score will change very little
+		// even if we drastically change the yaw.
+		val alignedToWorldYawPlane: (Vector3) -> Boolean = {
+			val angle = it.angleTo(POS_Y)
+			val maxAngleInRad = toRad(30.0f)
+			(angle < maxAngleInRad) || (angle > PI - maxAngleInRad)
+		}
+		if (alignedToWorldYawPlane(trackerYZNormal) || alignedToWorldYawPlane(parentTrackerYZNormal)) {
 			return
 		}
 
-		val deltaRot = trackerRot * parentTrackerRot.inv()
-		val deltaYawInRad = deltaRot.toEulerAngles(EulerOrder.YZX).y
+		// Trackers must be somewhat aligned along the same Y-Z plane. When two trackers
+		// are drastically out of alignment, it's likely that they currently aren't
+		// aligned in the real world, and we shouldn't nudge them.
+		if (!alwaysNudge) {
+			// As long as the player moves the tracker back in alignment before yaw
+			// drift goes beyond this value, we will be able to bring the trackers back
+			// into alignment. Otherwise, the player will probably need to do a yaw
+			// reset.
+			val maxAngleInRad = toRad(30.0f)
+			if (tracker.angleFromParentTrackerInRad > maxAngleInRad) {
+				return
+			}
+		}
 
-		// Amount of yaw should be roughly the maximum yaw bias of the gyroscope. If it
-		// is too small, the gyroscope will overpower the correction and the skeleton
-		// will drift. If it is too big, the player will notice that the skeleton is
-		// rotating when the player doesn't face forward for a long time.
-		val adjustYawInRad = -sign(deltaYawInRad) * toRad(yawCorrectionInDegPerSec) * VRServer.instance.fpsTimer.timePerFrame
+		// Adjust the yaw in each direction and calculate the alignment score
+		val currScore = parentTrackerYZNormal.dot(trackerYZNormal)
+		val currYawCorrectionInRad = tracker.yawCorrectionInRad
+		val yawDelta = toRad(yawCorrectionConfig.amountInDegPerSec) * VRServer.instance.fpsTimer.timePerFrame
 
-		// Adjust the tracker's yaw towards the parent tracker's yaw
-		tracker.yawCorrectionInRad += adjustYawInRad
+		val posYawCorrectionInRad = currYawCorrectionInRad + yawDelta
+		tracker.yawCorrectionInRad = posYawCorrectionInRad
+		val posYawScore = parentTrackerYZNormal.dot(tracker.getRotation().sandwich(Vector3.POS_X))
+
+		val negYawCorrectionInRad = currYawCorrectionInRad - yawDelta
+		tracker.yawCorrectionInRad = negYawCorrectionInRad
+		val negYawScore = parentTrackerYZNormal.dot(tracker.getRotation().sandwich(Vector3.POS_X))
+
+		// Pick the yaw with the best alignment
+		if ((currScore > posYawScore) && (currScore > negYawScore)) {
+			// We're already in the best alignment
+		} else if (posYawScore > negYawScore) {
+			tracker.yawCorrectionInRad = posYawCorrectionInRad
+		} else {
+			tracker.yawCorrectionInRad = negYawCorrectionInRad
+		}
 	}
 
 	private fun resetTrackerYawCorrections() {

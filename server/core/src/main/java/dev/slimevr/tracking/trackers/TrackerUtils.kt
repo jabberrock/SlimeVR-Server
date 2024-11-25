@@ -90,4 +90,15 @@ object TrackerUtils {
 	fun getFirstAvailableTracker(
 		vararg trackers: Tracker?,
 	): Tracker? = trackers.firstOrNull { it != null }
+
+	/**
+	 * Returns the last tracker that isn't null out of the n trackers passed as
+	 * arguments.
+	 *
+	 * @return The last non-null tracker or null
+	 */
+	@JvmStatic
+	fun getLastAvailableTracker(
+		vararg trackers: Tracker?,
+	): Tracker? = trackers.lastOrNull { it != null }
 }

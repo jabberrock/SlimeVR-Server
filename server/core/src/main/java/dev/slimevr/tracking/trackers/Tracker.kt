@@ -2,6 +2,7 @@ package dev.slimevr.tracking.trackers
 
 import dev.slimevr.VRServer
 import dev.slimevr.config.TrackerConfig
+import dev.slimevr.config.YawCorrectionConfig
 import dev.slimevr.tracking.trackers.TrackerPosition.Companion.getByDesignation
 import dev.slimevr.tracking.trackers.udp.IMUType
 import dev.slimevr.tracking.trackers.udp.MagnetometerStatus
@@ -85,7 +86,9 @@ class Tracker @JvmOverloads constructor(
 	var customName: String? = null
 	var magStatus: MagnetometerStatus = magStatus
 		private set
+	var yawCorrectionConfig = YawCorrectionConfig()
 	var yawCorrectionInRad: Float = 0.0f
+	var angleFromParentTrackerInRad: Float = 0.0f
 
 	/**
 	 * If the tracker has gotten disconnected after it was initialized first time
@@ -330,12 +333,14 @@ class Tracker @JvmOverloads constructor(
 			filteringHandler.getTrackedRotation()
 		}
 
-		rot = EulerAngles(EulerOrder.YZX, 0.0f, yawCorrectionInRad, 0.0f).toQuaternion() * rot
-
 		// Reset if needed and is not computed and internal
 		if (needsReset && !(isComputed && isInternal)) {
 			// Adjust to reset, mounting and drift compensation
 			rot = resetsHandler.getReferenceAdjustedDriftRotationFrom(rot)
+		}
+
+		if (yawCorrectionConfig.enabled) {
+			rot = EulerAngles(EulerOrder.YZX, 0.0f, yawCorrectionInRad, 0.0f).toQuaternion() * rot
 		}
 
 		return rot

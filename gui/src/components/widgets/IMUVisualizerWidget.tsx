@@ -12,6 +12,7 @@ import { useLocalization } from '@fluent/react';
 import { Vector3Object } from '@/maths/vector3';
 import { Gltf } from '@react-three/drei';
 import { ErrorBoundary } from 'react-error-boundary';
+import { useLocaleConfig } from '@/i18n/config';
 
 const groundColor = '#4444aa';
 
@@ -106,6 +107,13 @@ export function IMUVisualizerWidget({ tracker }: { tracker: TrackerDataT }) {
   const { useRawRotationEulerDegrees, useIdentAdjRotationEulerDegrees } =
     useTracker(tracker);
 
+  const { currentLocales } = useLocaleConfig();
+  const degreeFormat = new Intl.NumberFormat(currentLocales, {
+    style: 'unit',
+    unit: 'degree',
+    maximumFractionDigits: 1,
+  });
+
   const rotationRaw = useRawRotationEulerDegrees();
   const rotationIdent = useIdentAdjRotationEulerDegrees() || rotationRaw;
   const quat =
@@ -153,6 +161,18 @@ export function IMUVisualizerWidget({ tracker }: { tracker: TrackerDataT }) {
           </Typography>
           <Typography>
             {formatVector3(tracker.linearAcceleration, 1)}
+          </Typography>
+        </div>
+      )}
+
+      {!!tracker.yawCorrectionInDeg && (
+        <div className="flex justify-between">
+          <Typography color="secondary">
+            {l10n.getString('widget-imu_visualizer-yaw_correction_in_deg')}
+          </Typography>
+          <Typography>
+            &Delta; {degreeFormat.format(tracker.yawCorrectionInDeg)} (&uarr;{' '}
+            {degreeFormat.format(tracker.angleFromParentTrackerInDeg)})
           </Typography>
         </div>
       )}

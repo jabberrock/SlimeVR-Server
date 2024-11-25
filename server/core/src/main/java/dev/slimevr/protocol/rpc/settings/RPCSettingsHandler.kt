@@ -351,6 +351,8 @@ class RPCSettingsHandler(var rpcHandler: RPCHandler, var api: ProtocolAPI) {
 				.yawCorrectionConfig
 			yawCorrectionConfig.enabled = req.yawCorrectionSettings().enabled()
 			yawCorrectionConfig.amountInDegPerSec = req.yawCorrectionSettings().amountInDegPerSec()
+			yawCorrectionConfig.alignLegTrackers = req.yawCorrectionSettings().alignLegTrackers()
+			yawCorrectionConfig.alignLegTrackersToUpperBody = req.yawCorrectionSettings().alignLegTrackersToUpperBody()
 			api.server.humanPoseManager.setYawCorrection(yawCorrectionConfig)
 		}
 

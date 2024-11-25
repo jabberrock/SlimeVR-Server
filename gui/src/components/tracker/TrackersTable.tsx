@@ -17,6 +17,7 @@ import { TrackerBattery } from './TrackerBattery';
 import { TrackerStatus } from './TrackerStatus';
 import { TrackerWifi } from './TrackerWifi';
 import { trackerStatusRelated, useStatusContext } from '@/hooks/status-system';
+import { useLocaleConfig } from '@/i18n/config';
 
 enum DisplayColumn {
   NAME,
@@ -28,6 +29,7 @@ enum DisplayColumn {
   TEMPERATURE,
   LINEAR_ACCELERATION,
   POSITION,
+  YAW_COMPENSATION,
   URL,
 }
 
@@ -41,6 +43,7 @@ const displayColumns: { [k: string]: boolean } = {
   [DisplayColumn.TEMPERATURE]: true,
   [DisplayColumn.LINEAR_ACCELERATION]: true,
   [DisplayColumn.POSITION]: true,
+  [DisplayColumn.YAW_COMPENSATION]: true,
   [DisplayColumn.URL]: true,
 };
 
@@ -167,6 +170,13 @@ export function TrackersTable({
   const { config } = useConfig();
   const { statuses } = useStatusContext();
 
+  const { currentLocales } = useLocaleConfig();
+  const degreeFormat = new Intl.NumberFormat(currentLocales, {
+    style: 'unit',
+    unit: 'degree',
+    maximumFractionDigits: 1,
+  });
+
   const trackerEqual = (id: TrackerIdT | null) =>
     id?.trackerNum == hoverTracker?.trackerNum &&
     (!id?.deviceId || id.deviceId.id == hoverTracker?.deviceId?.id);
@@ -195,6 +205,7 @@ export function TrackersTable({
   displayColumns[DisplayColumn.TEMPERATURE] = hasTemperature || false;
   displayColumns[DisplayColumn.POSITION] = moreInfo || false;
   displayColumns[DisplayColumn.LINEAR_ACCELERATION] = moreInfo || false;
+  displayColumns[DisplayColumn.YAW_COMPENSATION] = moreInfo || false;
   displayColumns[DisplayColumn.URL] = moreInfo || false;
   const displayColumnsKeys = Object.keys(displayColumns).filter(
     (k) => displayColumns[k]
@@ -357,6 +368,19 @@ export function TrackersTable({
           tracker.position && (
             <Typography color={fontColor} whitespace="whitespace-nowrap">
               {formatVector3(tracker.position, 2)}
+            </Typography>
+          ),
+      })}
+
+      {column({
+        id: DisplayColumn.POSITION,
+        label: l10n.getString('tracker-table-column-yaw_compensation'),
+        labelClassName: 'w-36',
+        row: ({ tracker }) =>
+          tracker.yawCorrectionInDeg && (
+            <Typography color={fontColor} whitespace="whitespace-nowrap">
+              &Delta; {degreeFormat.format(tracker.yawCorrectionInDeg)} (&uarr;{' '}
+              {degreeFormat.format(tracker.angleFromParentTrackerInDeg)})
             </Typography>
           ),
       })}

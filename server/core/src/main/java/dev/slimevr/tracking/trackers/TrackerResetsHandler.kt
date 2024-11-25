@@ -47,6 +47,7 @@ class TrackerResetsHandler(val tracker: Tracker) {
 	var resetHmdPitch = false
 	var allowDriftCompensation = false
 	var lastResetQuaternion: Quaternion? = null
+	var lastYawCorrectionInRad = 0.0f
 
 	// Manual mounting orientation
 	var mountingOrientation = HalfHorizontal
@@ -225,6 +226,7 @@ class TrackerResetsHandler(val tracker: Tracker) {
 		// Old rot for drift compensation
 		val oldRot = adjustToReference(tracker.getRawRotation())
 		lastResetQuaternion = oldRot
+		lastYawCorrectionInRad = tracker.yawCorrectionInRad
 
 		// Adjust raw rotation to mountingOrientation
 		val mountingAdjustedRotation = tracker.getRawRotation() * mountingOrientation
@@ -294,6 +296,7 @@ class TrackerResetsHandler(val tracker: Tracker) {
 		// Old rot for drift compensation
 		val oldRot = adjustToReference(tracker.getRawRotation())
 		lastResetQuaternion = oldRot
+		lastYawCorrectionInRad = tracker.yawCorrectionInRad
 
 		yawFixOld = yawFix
 		yawFix = fixYaw(tracker.getRawRotation() * mountingOrientation, reference)

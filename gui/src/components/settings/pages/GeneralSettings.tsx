@@ -105,6 +105,8 @@ interface SettingsForm {
   yawCorrectionSettings: {
     enabled: boolean;
     amountInDegPerSec: number;
+    alignLegTrackers: boolean;
+    alignLegTrackersToUpperBody: boolean;
   };
 }
 
@@ -173,6 +175,8 @@ const defaultValues: SettingsForm = {
   yawCorrectionSettings: {
     enabled: false,
     amountInDegPerSec: 0.0,
+    alignLegTrackers: false,
+    alignLegTrackersToUpperBody: false,
   },
 };
 
@@ -308,6 +312,10 @@ export function GeneralSettings() {
     yawCorrectionSettings.enabled = values.yawCorrectionSettings.enabled;
     yawCorrectionSettings.amountInDegPerSec =
       values.yawCorrectionSettings.amountInDegPerSec;
+    yawCorrectionSettings.alignLegTrackers =
+      values.yawCorrectionSettings.alignLegTrackers;
+    yawCorrectionSettings.alignLegTrackersToUpperBody =
+      values.yawCorrectionSettings.alignLegTrackersToUpperBody;
     settings.yawCorrectionSettings = yawCorrectionSettings;
 
     if (values.resetsSettings) {
@@ -882,6 +890,26 @@ export function GeneralSettings() {
                   min={0.0}
                   max={2.0}
                   step={0.05}
+                />
+              </div>
+              <div className="grid md:grid-cols-2 flex-col gap-3 pt-2 pb-3">
+                <CheckBox
+                  variant="toggle"
+                  outlined
+                  control={control}
+                  name="yawCorrectionSettings.alignLegTrackers"
+                  label={l10n.getString(
+                    'settings-general-tracker_mechanics-spine_yaw_compensation-align_leg_trackers-label'
+                  )}
+                />
+                <CheckBox
+                  variant="toggle"
+                  outlined
+                  control={control}
+                  name="yawCorrectionSettings.alignLegTrackersToUpperBody"
+                  label={l10n.getString(
+                    'settings-general-tracker_mechanics-spine_yaw_compensation-align_leg_trackers_to_upper_body-label'
+                  )}
                 />
               </div>
             </div>
