@@ -203,8 +203,8 @@ class WebSocketVRBridge(
 
 	private fun parseAction(json: ObjectNode, conn: WebSocket) {
 		when (json["name"].asText()) {
-			"calibrate" -> instance.resetTrackersYaw(RESET_SOURCE_NAME)
-			"full_calibrate" -> instance.resetTrackersFull(RESET_SOURCE_NAME)
+			"calibrate" -> instance.resetTrackersYaw(RESET_SOURCE_NAME, setOf(), TrackerPosition.HEAD)
+			"full_calibrate" -> instance.resetTrackersFull(RESET_SOURCE_NAME, setOf(), TrackerPosition.HEAD)
 		}
 	}
 

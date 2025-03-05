@@ -9,6 +9,7 @@ import dev.slimevr.config.ResetsConfig
 import dev.slimevr.filtering.CircularArrayList
 import dev.slimevr.tracking.trackers.udp.TrackerDataType
 import io.eiren.math.FloatMath.animateEase
+import io.eiren.util.logging.LogManager
 import io.github.axisangles.ktmath.EulerAngles
 import io.github.axisangles.ktmath.EulerOrder
 import io.github.axisangles.ktmath.Quaternion
@@ -289,7 +290,12 @@ class TrackerResetsHandler(val tracker: Tracker) {
 			yawResetSmoothTimeRemain = 0.0f
 		}
 
+		// Reset the yaw correction of Stay Aligned
+		tracker.stayAligned.reset()
+
 		calculateDrift(oldRot)
+
+		LogManager.info("[resetFull] Reset ${tracker.trackerPosition}")
 
 		postProcessResetFull()
 	}
@@ -328,6 +334,9 @@ class TrackerResetsHandler(val tracker: Tracker) {
 
 		makeIdentityAdjustmentQuatsYaw()
 
+		// Reset the yaw correction of Stay Aligned
+		tracker.stayAligned.reset()
+
 		calculateDrift(oldRot)
 
 		// Start at yaw before reset if smoothing enabled
@@ -345,6 +354,8 @@ class TrackerResetsHandler(val tracker: Tracker) {
 		}
 
 		tracker.resetFilteringQuats()
+
+		LogManager.info("[resetYaw] Reset ${tracker.trackerPosition}")
 	}
 
 	/**
@@ -369,6 +380,12 @@ class TrackerResetsHandler(val tracker: Tracker) {
 		rotBuf = gyroFix * rotBuf
 		rotBuf *= attachmentFix
 		rotBuf = yawFix * rotBuf
+
+		// Skip if the tracker is too vertical
+		if (rotBuf.sandwichUnitY().angleTo(Vector3.POS_Y) < 20.0f * FastMath.DEG_TO_RAD) {
+			LogManager.info("[resetMounting] Skipped ${tracker.trackerPosition}")
+			return
+		}
 
 		// Adjust buffer to reference
 		rotBuf = reference.project(Vector3.POS_Y).inv().unit() * rotBuf
@@ -395,11 +412,8 @@ class TrackerResetsHandler(val tracker: Tracker) {
 			yawAngle += FastMath.HALF_PI
 		}
 
-		// Adjust for forward/back arms and thighs
-		val isLowerArmBack = armsResetMode == ArmsResetModes.BACK && (isLeftLowerArmTracker() || isRightLowerArmTracker())
-		val isArmForward = armsResetMode == ArmsResetModes.FORWARD && (isLeftArmTracker() || isRightArmTracker())
-		if (!isThighTracker() && !isArmForward && !isLowerArmBack) {
-			// Tracker goes back
+		// If the tracker is facing downwards, tracker yaw goes back
+		if (rotBuf.sandwichUnitZ().angleTo(Vector3.POS_Y) < 90.0f * FastMath.DEG_TO_RAD) {
 			yawAngle -= FastMath.PI
 		}
 
@@ -410,6 +424,8 @@ class TrackerResetsHandler(val tracker: Tracker) {
 		if (saveMountingReset) tracker.saveMountingResetOrientation(mountRotFix)
 
 		tracker.resetFilteringQuats()
+
+		LogManager.info("[resetMounting] Reset ${tracker.trackerPosition}")
 	}
 
 	/**

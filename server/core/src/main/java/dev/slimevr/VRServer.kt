@@ -289,16 +289,46 @@ class VRServer @JvmOverloads constructor(
 		}
 	}
 
-	fun resetTrackersFull(resetSourceName: String?) {
-		queueTask { humanPoseManager.resetTrackersFull(resetSourceName) }
+	fun resetTrackersFull(
+		resetSourceName: String?,
+		trackerPositions: Set<TrackerPosition>,
+		referenceTrackerPosition: TrackerPosition,
+	) {
+		queueTask {
+			humanPoseManager.resetTrackersFull(
+				resetSourceName,
+				trackerPositions,
+				referenceTrackerPosition,
+			)
+		}
 	}
 
-	fun resetTrackersYaw(resetSourceName: String?) {
-		queueTask { humanPoseManager.resetTrackersYaw(resetSourceName) }
+	fun resetTrackersYaw(
+		resetSourceName: String?,
+		trackerPositions: Set<TrackerPosition>,
+		referenceTrackerPosition: TrackerPosition,
+	) {
+		queueTask {
+			humanPoseManager.resetTrackersYaw(
+				resetSourceName,
+				trackerPositions,
+				referenceTrackerPosition,
+			)
+		}
 	}
 
-	fun resetTrackersMounting(resetSourceName: String?) {
-		queueTask { humanPoseManager.resetTrackersMounting(resetSourceName) }
+	fun resetTrackersMounting(
+		resetSourceName: String?,
+		trackerPositions: Set<TrackerPosition>,
+		referenceTrackerPosition: TrackerPosition,
+	) {
+		queueTask {
+			humanPoseManager.resetTrackersMounting(
+				resetSourceName,
+				trackerPositions,
+				referenceTrackerPosition,
+			)
+		}
 	}
 
 	fun clearTrackersMounting(resetSourceName: String?) {
@@ -329,19 +359,19 @@ class VRServer @JvmOverloads constructor(
 
 	fun scheduleResetTrackersFull(resetSourceName: String?, delay: Long) {
 		timer.schedule(delay) {
-			queueTask { humanPoseManager.resetTrackersFull(resetSourceName) }
+			queueTask { humanPoseManager.resetTrackersFull(resetSourceName, setOf(), TrackerPosition.HEAD) }
 		}
 	}
 
 	fun scheduleResetTrackersYaw(resetSourceName: String?, delay: Long) {
 		timer.schedule(delay) {
-			queueTask { humanPoseManager.resetTrackersYaw(resetSourceName) }
+			queueTask { humanPoseManager.resetTrackersYaw(resetSourceName, setOf(), TrackerPosition.HEAD) }
 		}
 	}
 
 	fun scheduleResetTrackersMounting(resetSourceName: String?, delay: Long) {
 		timer.schedule(delay) {
-			queueTask { humanPoseManager.resetTrackersMounting(resetSourceName) }
+			queueTask { humanPoseManager.resetTrackersMounting(resetSourceName, setOf(), TrackerPosition.HEAD) }
 		}
 	}
 

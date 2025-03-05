@@ -60,6 +60,7 @@ import { ScaledProportionsPage } from './components/onboarding/pages/body-propor
 import { EmptyLayout } from './components/EmptyLayout';
 import { AdvancedSettings } from './components/settings/pages/AdvancedSettings';
 import { FirmwareUpdate } from './components/firmware-update/FirmwareUpdate';
+import { StayAlignedSetupPage } from './components/onboarding/pages/stay-aligned/StayAlignedSetup';
 
 export const GH_REPO = 'SlimeVR/SlimeVR-Server';
 export const VersionContext = createContext('');
@@ -166,6 +167,10 @@ function Layout() {
             <Route
               path="body-proportions/scaled"
               element={<ScaledProportionsPage />}
+            />
+            <Route
+              path="stay-aligned/setup"
+              element={<StayAlignedSetupPage />}
             />
             <Route path="done" element={<DonePage />} />
           </Route>

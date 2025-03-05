@@ -98,7 +98,10 @@ public class DataFeedHandler extends ProtocolHandler<DataFeedMessageHeader> {
 				h.getAllBones()
 			);
 
-		return DataFeedUpdate.createDataFeedUpdate(fbb, devicesOffset, trackersOffset, bonesOffset);
+		int stayAlignedPose = h.skeleton.getStayAlignedPose().getSerialized();
+
+		return DataFeedUpdate
+			.createDataFeedUpdate(fbb, devicesOffset, trackersOffset, bonesOffset, stayAlignedPose);
 	}
 
 	public void sendDataFeedUpdate() {

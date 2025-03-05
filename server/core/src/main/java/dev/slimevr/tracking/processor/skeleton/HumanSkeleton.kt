@@ -2,6 +2,8 @@ package dev.slimevr.tracking.processor.skeleton
 
 import com.jme3.math.FastMath
 import dev.slimevr.VRServer
+import dev.slimevr.config.StayAlignedConfig
+import dev.slimevr.math.Angle
 import dev.slimevr.tracking.processor.Bone
 import dev.slimevr.tracking.processor.BoneType
 import dev.slimevr.tracking.processor.Constraint
@@ -9,6 +11,11 @@ import dev.slimevr.tracking.processor.Constraint.Companion.ConstraintType
 import dev.slimevr.tracking.processor.HumanPoseManager
 import dev.slimevr.tracking.processor.config.SkeletonConfigToggles
 import dev.slimevr.tracking.processor.config.SkeletonConfigValues
+import dev.slimevr.tracking.processor.stayaligned.StayAligned
+import dev.slimevr.tracking.processor.stayaligned.adjust.TrackerYaw.trackerYaw
+import dev.slimevr.tracking.processor.stayaligned.skeleton.RelaxedBodyAngles
+import dev.slimevr.tracking.processor.stayaligned.skeleton.TrackerSkeleton
+import dev.slimevr.tracking.processor.stayaligned.skeleton.TrackerSkeletonPose
 import dev.slimevr.tracking.trackers.Tracker
 import dev.slimevr.tracking.trackers.TrackerPosition
 import dev.slimevr.tracking.trackers.TrackerRole
@@ -215,6 +222,11 @@ class HumanSkeleton(
 	var viveEmulation = ViveEmulation(this)
 	var localizer = Localizer(this)
 
+	var trackerSkeleton = TrackerSkeleton(this)
+	var stayAlignedPose = TrackerSkeletonPose.UNKNOWN
+	var stayAlignedRelaxedBodyAngles: RelaxedBodyAngles? = null
+	private var stayAlignedConfig = StayAlignedConfig().also { it.enabled = false }
+
 	// Constructors
 	init {
 		assembleSkeleton()
@@ -236,6 +248,7 @@ class HumanSkeleton(
 		)
 		legTweaks.setConfig(server.configManager.vrConfig.legTweaks)
 		localizer.setEnabled(humanPoseManager.getToggle(SkeletonConfigToggles.SELF_LOCALIZATION))
+		stayAlignedConfig = server.configManager.vrConfig.stayAlignedConfig
 	}
 
 	constructor(
@@ -453,6 +466,9 @@ class HumanSkeleton(
 
 		// Update bones tracker field
 		refreshBoneTracker()
+
+		// Update tracker skeleton
+		trackerSkeleton = TrackerSkeleton(this)
 	}
 
 	/**
@@ -508,6 +524,10 @@ class HumanSkeleton(
 	@VRServerThread
 	fun updatePose() {
 		tapDetectionManager.update()
+
+		stayAlignedPose = TrackerSkeletonPose.ofTrackers(trackerSkeleton)
+		stayAlignedRelaxedBodyAngles = RelaxedBodyAngles.forPose(stayAlignedPose, stayAlignedConfig)
+		StayAligned.adjustNextTracker(trackerSkeleton, stayAlignedConfig, stayAlignedRelaxedBodyAngles)
 
 		updateTransforms()
 		updateBones()
@@ -1553,18 +1573,49 @@ class HumanSkeleton(
 			rightLittleDistalTracker,
 		)
 
-	fun resetTrackersFull(resetSourceName: String?) {
+	fun resetTrackersFull(
+		resetSourceName: String?,
+		trackerPositions: Set<TrackerPosition>,
+		referenceTrackerPosition: TrackerPosition,
+	) {
 		var referenceRotation = IDENTITY
+
+		// Reset the reference tracker and grab its rotation
+		if (referenceTrackerPosition == TrackerPosition.HEAD) {
+			headTracker?.let {
+				// Always reset the head (ifs in resetsHandler)
+				if (trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD)) {
+					it.resetsHandler.resetFull(referenceRotation)
+				}
+				referenceRotation = it.getRotation()
+			}
+		} else {
+			val referenceTracker = trackersToReset.find { it?.trackerPosition == referenceTrackerPosition }
+			referenceTracker?.let {
+				if (trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD)) {
+					it.resetsHandler.resetFull(referenceRotation)
+				}
+				referenceRotation = it.getRotation()
+			}
+		}
+
 		headTracker?.let {
 			// Always reset the head (ifs in resetsHandler)
-			it.resetsHandler.resetFull(referenceRotation)
-			referenceRotation = it.getRotation()
+			if (it.trackerPosition != referenceTrackerPosition &&
+				(trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD))
+			) {
+				it.resetsHandler.resetFull(referenceRotation)
+			}
 		}
 		// Resets all axes of the trackers with the HMD as reference.
 		for (tracker in trackersToReset) {
 			// Only reset if tracker needsReset
 			if (tracker != null && (tracker.needsReset || tracker.isHmd)) {
-				tracker.resetsHandler.resetFull(referenceRotation)
+				if (tracker.trackerPosition != referenceTrackerPosition &&
+					(trackerPositions.isEmpty() || trackerPositions.contains(tracker.trackerPosition))
+				) {
+					tracker.resetsHandler.resetFull(referenceRotation)
+				}
 			}
 		}
 
@@ -1579,20 +1630,43 @@ class HumanSkeleton(
 	}
 
 	@VRServerThread
-	fun resetTrackersYaw(resetSourceName: String?) {
+	fun resetTrackersYaw(
+		resetSourceName: String?,
+		trackerPositions: Set<TrackerPosition>,
+		referenceTrackerPosition: TrackerPosition,
+	) {
 		// Resets the yaw of the trackers with the head as reference.
 		var referenceRotation = IDENTITY
+
+		// Reset the reference tracker and grab its rotation
 		headTracker?.let {
 			// Only reset if head needsReset and isn't computed
 			if (it.needsReset && !it.isComputed) {
-				it.resetsHandler.resetYaw(referenceRotation)
+				if (trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD)) {
+					it.resetsHandler.resetYaw(referenceRotation)
+				}
 			}
 			referenceRotation = it.getRotation()
+		}
+
+		headTracker?.let {
+			// Only reset if head needsReset and isn't computed
+			if (it.needsReset && !it.isComputed) {
+				if (it.trackerPosition != referenceTrackerPosition &&
+					(trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD))
+				) {
+					it.resetsHandler.resetYaw(referenceRotation)
+				}
+			}
 		}
 		for (tracker in trackersToReset) {
 			// Only reset if tracker needsReset
 			if (tracker != null && tracker.needsReset) {
-				tracker.resetsHandler.resetYaw(referenceRotation)
+				if (tracker.trackerPosition != referenceTrackerPosition &&
+					(trackerPositions.isEmpty() || trackerPositions.contains(tracker.trackerPosition))
+				) {
+					tracker.resetsHandler.resetYaw(referenceRotation)
+				}
 			}
 		}
 		legTweaks.resetBuffer()
@@ -1600,7 +1674,11 @@ class HumanSkeleton(
 	}
 
 	@VRServerThread
-	fun resetTrackersMounting(resetSourceName: String?) {
+	fun resetTrackersMounting(
+		resetSourceName: String?,
+		trackerPositions: Set<TrackerPosition>,
+		referenceTrackerPosition: TrackerPosition,
+	) {
 		val server = humanPoseManager.server
 		if (server != null && server.statusSystem.hasStatusType(StatusData.StatusTrackerReset)) {
 			LogManager.info("[HumanSkeleton] Reset: mounting ($resetSourceName) failed, reset required")
@@ -1609,17 +1687,43 @@ class HumanSkeleton(
 
 		// Resets the mounting orientation of the trackers with the HMD as reference.
 		var referenceRotation = IDENTITY
+
+		// Reset the reference tracker and grab its rotation
+		if (referenceTrackerPosition == TrackerPosition.HEAD) {
+			headTracker?.let {
+				if (trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD)) {
+					it.resetsHandler.resetMounting(referenceRotation)
+				}
+				referenceRotation = it.getRotation()
+			}
+		} else {
+			val referenceTracker = trackersToReset.find { it?.trackerPosition == referenceTrackerPosition }
+			referenceTracker?.let {
+				if (trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD)) {
+					it.resetsHandler.resetMounting(referenceRotation)
+				}
+				referenceRotation = it.getRotation()
+			}
+		}
+
 		headTracker?.let {
 			// Only reset if head needsMounting or is computed but not HMD
 			if (it.needsMounting || (it.isComputed && !it.isHmd)) {
-				it.resetsHandler.resetMounting(referenceRotation)
+				if (it.trackerPosition != referenceTrackerPosition &&
+					(trackerPositions.isEmpty() || trackerPositions.contains(TrackerPosition.HEAD))
+				) {
+					it.resetsHandler.resetMounting(referenceRotation)
+				}
 			}
-			referenceRotation = it.getRotation()
 		}
 		for (tracker in trackersToReset) {
 			// Only reset if tracker needsMounting
 			if (tracker != null && tracker.needsMounting) {
-				tracker.resetsHandler.resetMounting(referenceRotation)
+				if (tracker.trackerPosition != referenceTrackerPosition &&
+					(trackerPositions.isEmpty() || trackerPositions.contains(tracker.trackerPosition))
+				) {
+					tracker.resetsHandler.resetMounting(referenceRotation)
+				}
 			}
 		}
 		legTweaks.resetBuffer()
@@ -1735,6 +1839,65 @@ class HumanSkeleton(
 		val newState = !pauseTracking
 		setPauseTracking(newState, sourceName)
 		return newState
+	}
+
+	@VRServerThread
+	fun setStayAlignedConfig(newConfig: StayAlignedConfig) {
+		// The config system directly modifies values on the same config objects, so
+		// clone the config so that we have an unchanging copy.
+		stayAlignedConfig = newConfig.clone()
+
+		// If a config relaxed body angle has changed, and the player is in the affected
+		// pose, update the skeleton so that the player can immediately see the results.
+		// This allows the player to set accurate angles.
+		val oldAngles = stayAlignedRelaxedBodyAngles
+		val newAngles = RelaxedBodyAngles.forPose(stayAlignedPose, newConfig)
+		if (
+			newAngles != null &&
+			oldAngles != null &&
+			!newAngles.near(oldAngles)
+		) {
+// 			yawResetAroundChestWithLegAngles(newAngles)
+		}
+	}
+
+	/**
+	 * Yaw resets with the chest, instead of the head, so that the player doesn't have
+	 * to keep their head facing forward. Also adjusts leg trackers to the specified
+	 * angles.
+	 *
+	 * Used by Stay Aligned to help the user configure their relaxed body angles.
+	 */
+	private fun yawResetAroundChestWithLegAngles(angles: RelaxedBodyAngles) {
+		val chest = chestTracker ?: return
+
+		// Save chest yaw so that we can reset body around this yaw
+		val chestYaw = trackerYaw(chest)
+
+		resetTrackersYaw("StayAlignedConfig", setOf(), TrackerPosition.HEAD)
+
+		// Align all trackers to the original chest yaw
+		for (tracker in trackersToReset) {
+			if (tracker != null) {
+				forceTrackerYaw(tracker, chestYaw)
+			}
+		}
+
+		// Align leg trackers to the relaxed body angles
+		leftUpperLegTracker?.let { forceTrackerYaw(it, chestYaw + angles.upperLeg) }
+		rightUpperLegTracker?.let { forceTrackerYaw(it, chestYaw - angles.upperLeg) }
+		leftLowerLegTracker?.let { forceTrackerYaw(it, chestYaw + angles.lowerLeg) }
+		rightLowerLegTracker?.let { forceTrackerYaw(it, chestYaw - angles.lowerLeg) }
+		leftFootTracker?.let { forceTrackerYaw(it, chestYaw + angles.foot) }
+		rightFootTracker?.let { forceTrackerYaw(it, chestYaw - angles.foot) }
+	}
+
+	/**
+	 * Forces a tracker to have the specific angle by setting the Stay Aligned yaw
+	 * correction.
+	 */
+	private fun forceTrackerYaw(tracker: Tracker, yaw: Angle) {
+		tracker.stayAligned.yawCorrection.yaw += yaw - trackerYaw(tracker)
 	}
 
 	companion object {

@@ -2,15 +2,21 @@ import { useOnboarding } from '@/hooks/onboarding';
 import { Typography } from '@/components/commons/Typography';
 import { Step, StepperSlider } from '@/components/onboarding/StepperSlider';
 import { DoneStep } from './mounting-steps/Done';
-import { MountingResetStep } from './mounting-steps/MountingReset';
+import { SittingResetStep } from './mounting-steps/SittingReset';
 import { PreparationStep } from './mounting-steps/Preparation';
-import { PutTrackersOnStep } from './mounting-steps/PutTrackersOn';
+import { SittingLegsRaisedResetStep } from './mounting-steps/SittingLegsRaisedReset';
+import { SittingLegsTogetherResetStep } from './mounting-steps/SittingLegsTogetherReset';
 import { useLocalization } from '@fluent/react';
+import { StandingResetStep } from './mounting-steps/StandingReset';
+import { DemoStep } from './mounting-steps/Demo';
 
 const steps: Step[] = [
-  { type: 'numbered', component: PutTrackersOnStep },
+  { type: 'numbered', component: DemoStep },
   { type: 'numbered', component: PreparationStep },
-  { type: 'numbered', component: MountingResetStep },
+  { type: 'numbered', component: StandingResetStep },
+  { type: 'numbered', component: SittingResetStep },
+  { type: 'numbered', component: SittingLegsTogetherResetStep },
+  { type: 'numbered', component: SittingLegsRaisedResetStep },
   { type: 'fullsize', component: DoneStep },
 ];
 export function AutomaticMountingPage() {

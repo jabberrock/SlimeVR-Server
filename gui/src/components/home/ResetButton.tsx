@@ -1,6 +1,7 @@
 import { useLocalization } from '@fluent/react';
 import { useMemo } from 'react';
 import {
+  BodyPart,
   ResetRequestT,
   ResetType,
   RpcMessage,
@@ -21,10 +22,14 @@ import { useStatusContext } from '@/hooks/status-system';
 
 export function ResetButton({
   type,
+  trackerPositions,
+  referenceTrackerPosition,
   variant = 'big',
   onReseted,
 }: {
   type: ResetType;
+  trackerPositions?: BodyPart[];
+  referenceTrackerPosition?: BodyPart;
   variant: 'big' | 'small';
   onReseted?: () => void;
 }) {
@@ -45,6 +50,8 @@ export function ResetButton({
   const reset = () => {
     const req = new ResetRequestT();
     req.resetType = type;
+    req.trackerPositions = trackerPositions || [];
+    req.referenceTrackerPosition = referenceTrackerPosition || BodyPart.HEAD;
     sendRPCPacket(RpcMessage.ResetRequest, req);
   };
 

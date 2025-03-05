@@ -185,6 +185,7 @@ widget-imu_visualizer-rotation_raw = Raw rotation
 widget-imu_visualizer-rotation_preview = Preview rotation
 widget-imu_visualizer-acceleration = Acceleration
 widget-imu_visualizer-position = Position
+widget-imu_visualizer-stay_aligned = Stay Aligned
 
 ## Widget: Skeleton Visualizer
 widget-skeleton_visualizer-preview = Skeleton preview
@@ -209,6 +210,7 @@ tracker-table-column-temperature = Temp. °C
 tracker-table-column-linear-acceleration = Accel. X/Y/Z
 tracker-table-column-rotation = Rotation X/Y/Z
 tracker-table-column-position = Position X/Y/Z
+tracker-table-column-stay_aligned = Stay Aligned
 tracker-table-column-url = URL
 
 ## Tracker rotation
@@ -338,6 +340,7 @@ mounting_selection_menu-close = Close
 settings-sidebar-title = Settings
 settings-sidebar-general = General
 settings-sidebar-tracker_mechanics = Tracker mechanics
+settings-sidebar-stay_aligned = Stay Aligned
 settings-sidebar-fk_settings = Tracking settings
 settings-sidebar-gesture_control = Gesture control
 settings-sidebar-interface = Interface
@@ -427,6 +430,31 @@ settings-general-tracker_mechanics-use_mag_on_all_trackers-description =
     Uses magnetometer on all trackers that have a compatible firmware for it, reducing drift in stable magnetic environments.
     Can be disabled per tracker in the tracker's settings. <b>Please don't shutdown any of the trackers while toggling this!</b>
 settings-general-tracker_mechanics-use_mag_on_all_trackers-label = Use magnetometer on trackers
+
+settings-general-stay_aligned = Stay Aligned
+settings-general-stay_aligned-description = Keeps your trackers aligned by slowly adjusting the yaw of your trackers.
+settings-general-stay_aligned-warnings-drift_compensation = ⚠ Please disable "Drift Compensation". Stay Aligned and Drift Compensation try to solve the same problem and only one should be enabled.
+settings-general-stay_aligned-enabled-label = Enabled
+settings-general-stay_aligned-setup-label = Setup Stay Aligned
+settings-general-stay_aligned-amount-label = Maximum yaw adjustment rate
+settings-general-stay_aligned-amount-description = Pick a rate depending on how good your IMU is: 0.10 deg/s for ICM45686, LSM6DSV or BNO085; 0.20 deg/s for LSM6DSR or BMI270; and 0.40 deg/s for BMI160.
+settings-general-stay_aligned-relaxed_body_angles-label = Relaxed Body Angles
+settings-general-stay_aligned-relaxed_body_angles-description = FOR DEBUGGING ONLY! Use "Setup Stay Aligned" above to configure. (pose={$pose}, thigh={$upperLeg}, ankle={$lowerLeg} foot={$foot})
+settings-general-stay_aligned-relaxed_body_angles-standing-label = Standing
+settings-general-stay_aligned-relaxed_body_angles-sitting-label = Sitting in chair
+settings-general-stay_aligned-relaxed_body_angles-flat-label = Sitting on floor, and lying on back
+settings-general-stay_aligned-relaxed_body_angles-upper_leg_angle = Thigh
+settings-general-stay_aligned-relaxed_body_angles-lower_leg_angle = Ankle
+settings-general-stay_aligned-relaxed_body_angles-foot_angle = Foot
+settings-general-stay_aligned-relaxed_body_angles-auto_detect = Detect angles
+settings-general-stay_aligned-relaxed_body_angles-reset = Reset angles
+settings-general-stay_aligned-pose-unknown = Unknown
+settings-general-stay_aligned-pose-standing = Standing
+settings-general-stay_aligned-pose-sitting_in_chair = Sitting in chair
+settings-general-stay_aligned-pose-sitting_on_ground = Sitting on ground
+settings-general-stay_aligned-pose-lying_on_back = Lying on back
+settings-general-stay_aligned-pose-kneeling = Kneeling
+
 
 ## FK/Tracking settings
 settings-general-fk_settings = Tracking settings
@@ -944,15 +972,42 @@ onboarding-automatic_mounting-prev_step = Previous step
 onboarding-automatic_mounting-done-title = Mounting orientations calibrated.
 onboarding-automatic_mounting-done-description = Your mounting calibration is complete!
 onboarding-automatic_mounting-done-restart = Try again
-onboarding-automatic_mounting-mounting_reset-title = Mounting Reset
-onboarding-automatic_mounting-mounting_reset-step-0 = 1. Squat in a "skiing" pose with your legs bent, your upper body tilted forwards, and your arms bent.
-onboarding-automatic_mounting-mounting_reset-step-1 = 2. Press the "Reset Mounting" button and wait for 3 seconds before the trackers' mounting orientations will reset.
+onboarding-automatic_mounting-mounting_reset-title = Sitting Reset
+onboarding-automatic_mounting-mounting_reset-step-0 = 1. Without moving your feet, sit back down
+onboarding-automatic_mounting-mounting_reset-step-1 = 2. Keep your thighs parallel, and legs straight down.
+onboarding-automatic_mounting-mounting_reset-step-2 = 3. Lean backwards while keeping your back straight. Your upper body must be slanted.
+onboarding-automatic_mounting-mounting_reset-step-3 = 4. Press the "Reset Mounting" button.
 onboarding-automatic_mounting-preparation-title = Preparation
-onboarding-automatic_mounting-preparation-step-0 = 1. Stand upright with your arms to your sides.
-onboarding-automatic_mounting-preparation-step-1 = 2. Press the "Full Reset" button and wait for 3 seconds before the trackers will reset.
+onboarding-automatic_mounting-preparation-step-0 = 1. Sit in a chair.
+onboarding-automatic_mounting-preparation-step-1 = 2. Keep your thighs parallel and legs straight down.
+onboarding-automatic_mounting-preparation-step-2 = 3. Position your feet comfortably. You do not need to force them to point forward.
+onboarding-automatic_mounting-standing_reset-title = Standing Reset
+onboarding-automatic_mounting-standing_reset-step-0 = 1. Without moving your feet, stand up straight.
+onboarding-automatic_mounting-standing_reset-step-1 = 2. Place your hands by your side.
+onboarding-automatic_mounting-standing_reset-step-2 = 3. Press the "Full Reset" button.
 onboarding-automatic_mounting-put_trackers_on-title = Put on your trackers
 onboarding-automatic_mounting-put_trackers_on-description = To calibrate mounting orientations, we're gonna use the trackers you just assigned. Put on all your trackers, you can see which are which in the figure to the right.
 onboarding-automatic_mounting-put_trackers_on-next = I have all my trackers on
+onboarding-automatic_mounting-mounting_reset_check-title = Verify Mounting Reset
+onboarding-automatic_mounting-mounting_reset_check-description = While sitting, open and close your legs, then lift your legs up. Check that your trackers match your legs correctly.
+onboarding-automatic_mounting-mounting_reset_check-next = Mounting looks correct!
+onboarding-automatic_mounting-preparation_feet-title = Lower Leg Reset
+onboarding-automatic_mounting-preparation_feet-step-0 = 1. Move your thighs and feet together so that they are touching, or as close as possible.
+onboarding-automatic_mounting-preparation_feet-step-1 = 2. Press the "Full Mounting" button.
+onboarding-automatic_mounting-mounting_reset_feet-title = Lower Leg Reset
+onboarding-automatic_mounting-mounting_reset_feet-step-0 = 1. Lift your legs and feet up slightly, while keeping your thighs and feet together.
+onboarding-automatic_mounting-mounting_reset_feet-step-1 = 2. Press the "Reset Mounting" button.
+onboarding-stay_aligned-relaxed_body_angles-standing-title = Relaxed Standing Posture
+onboarding-stay_aligned-relaxed_body_angles-standing-step-0 = 1. Stand up and move your feet until you're in a comfortable standing position.
+onboarding-stay_aligned-relaxed_body_angles-standing-step-1 = 2. Press the "Detect angles" button.
+onboarding-stay_aligned-relaxed_body_angles-sitting-title = Relaxed Sitting Posture
+onboarding-stay_aligned-relaxed_body_angles-sitting-step-0 = 1. Sit down in a comfortable position in your chair.
+onboarding-stay_aligned-relaxed_body_angles-sitting-step-1 = 2. Press the "Detect angles" button.
+onboarding-stay_aligned-relaxed_body_angles-flat-title = Relaxed Lying Posture
+onboarding-stay_aligned-relaxed_body_angles-flat-step-0 = 1. Sit down on the floor comfortably, with your legs in front.
+onboarding-stay_aligned-relaxed_body_angles-flat-step-1 = 2. Press the "Detect angles" button.
+onboarding-automatic_mounting-demo-title = Demonstration
+
 
 ## Tracker proportions method choose
 onboarding-choose_proportions = What proportion calibration method to use?
@@ -1097,6 +1152,34 @@ onboarding-scaled_proportions-reset_proportion-title = Reset your body proportio
 onboarding-scaled_proportions-reset_proportion-description = To set your body proportions based on your height, you need to now reset all of your proportions. This will clear any proportions you have configured and provide a baseline configuration.
 onboarding-scaled_proportions-done-title = Body proportions set
 onboarding-scaled_proportions-done-description = Your body proportions should now be configured based on your height.
+
+onboarding-automatic_proportions-smol_warning =
+    Your configured height of { $height } is smaller than the minimum accepted height of { $minHeight }.
+    <b>Please redo the measurements and ensure they are correct.</b>
+onboarding-automatic_proportions-smol_warning-cancel = Go back
+
+## Tracker scaled proportions setup
+onboarding-scaled_proportions-title = Scaled proportions
+onboarding-scaled_proportions-description = For SlimeVR trackers to work, we need to know the length of your bones. This will use an average proportion and scale it based on your height.
+onboarding-scaled_proportions-manual_height-title = Configure your height
+onboarding-scaled_proportions-manual_height-description = Your headset (HMD) height should be slightly less than your full height, as headsets measure your eye height. This height will be used as a baseline for your body proportions.
+onboarding-scaled_proportions-manual_height-missing_steamvr = SteamVR is not currently connected to SlimeVR, so measurements can't be based on your headset. <b>Proceed at your own risk or check the docs!</b>
+onboarding-scaled_proportions-manual_height-height = Your headset height is
+onboarding-scaled_proportions-manual_height-next_step = Continue and save
+
+## Tracker scaled proportions reset
+onboarding-scaled_proportions-reset_proportion-title = Reset your body proportions
+onboarding-scaled_proportions-reset_proportion-description = To set your body proportions based on your height, you need to now reset all of your proportions. This will clear any proportions you have configured and provide a baseline configuration.
+onboarding-scaled_proportions-done-title = Body proportions set
+onboarding-scaled_proportions-done-description = Your body proportions should now be configured based on your height.
+
+## Stay Aligned setup
+onboarding-stay_aligned-title = Stay Aligned
+onboarding-stay_aligned-description = Configure Stay Aligned to match your body and relaxed poses.
+onboarding-stay_aligned-done-title = Stay Aligned done.
+onboarding-stay_aligned-done-description = Your Stay Aligned setup is complete!
+onboarding-stay_aligned-done-restart = Try again
+onboarding-stay_aligned-next = Next
 
 ## Home
 home-no_trackers = No trackers detected or assigned

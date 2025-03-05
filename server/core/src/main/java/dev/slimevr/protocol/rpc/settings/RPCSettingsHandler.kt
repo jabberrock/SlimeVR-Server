@@ -4,6 +4,7 @@ import com.google.flatbuffers.FlatBufferBuilder
 import dev.slimevr.bridge.ISteamVRBridge
 import dev.slimevr.config.ArmsResetModes
 import dev.slimevr.filtering.TrackerFilters
+import dev.slimevr.math.DegreeAngle
 import dev.slimevr.protocol.GenericConnection
 import dev.slimevr.protocol.ProtocolAPI
 import dev.slimevr.protocol.rpc.RPCHandler
@@ -352,6 +353,22 @@ class RPCSettingsHandler(var rpcHandler: RPCHandler, var api: ProtocolAPI) {
 			resetsConfig.yawResetSmoothTime = req.resetsSettings().yawResetSmoothTime()
 			resetsConfig.resetHmdPitch = req.resetsSettings().resetHmdPitch()
 			resetsConfig.updateTrackersResetsSettings()
+		}
+
+		if (req.yawCorrectionSettings() != null) {
+			val config = api.server.configManager.vrConfig.stayAlignedConfig
+			config.enabled = req.yawCorrectionSettings().enabled()
+			config.yawCorrectionPerSec = DegreeAngle(req.yawCorrectionSettings().amountInDegPerSec())
+			config.standingUpperLegAngle = DegreeAngle(req.yawCorrectionSettings().standingUpperLegAngle())
+			config.standingLowerLegAngle = DegreeAngle(req.yawCorrectionSettings().standingLowerLegAngle())
+			config.standingFootAngle = DegreeAngle(req.yawCorrectionSettings().standingFootAngle())
+			config.sittingUpperLegAngle = DegreeAngle(req.yawCorrectionSettings().sittingUpperLegAngle())
+			config.sittingLowerLegAngle = DegreeAngle(req.yawCorrectionSettings().sittingLowerLegAngle())
+			config.sittingFootAngle = DegreeAngle(req.yawCorrectionSettings().sittingFootAngle())
+			config.flatUpperLegAngle = DegreeAngle(req.yawCorrectionSettings().flatUpperLegAngle())
+			config.flatLowerLegAngle = DegreeAngle(req.yawCorrectionSettings().flatLowerLegAngle())
+			config.flatFootAngle = DegreeAngle(req.yawCorrectionSettings().flatFootAngle())
+			api.server.humanPoseManager.setStayAlignedConfig(config)
 		}
 
 		api.server.configManager.saveConfig()
