@@ -2,6 +2,7 @@ package dev.slimevr.protocol.rpc
 
 import com.google.flatbuffers.FlatBufferBuilder
 import dev.slimevr.config.config
+import dev.slimevr.math.Angle
 import dev.slimevr.protocol.GenericConnection
 import dev.slimevr.protocol.ProtocolAPI
 import dev.slimevr.protocol.ProtocolHandler
@@ -11,6 +12,7 @@ import dev.slimevr.protocol.rpc.firmware.RPCFirmwareUpdateHandler
 import dev.slimevr.protocol.rpc.reset.RPCResetHandler
 import dev.slimevr.protocol.rpc.serial.RPCProvisioningHandler
 import dev.slimevr.protocol.rpc.serial.RPCSerialHandler
+import dev.slimevr.protocol.rpc.settings.RPCSettingsBuilder
 import dev.slimevr.protocol.rpc.settings.RPCSettingsHandler
 import dev.slimevr.protocol.rpc.setup.RPCHandshakeHandler
 import dev.slimevr.protocol.rpc.setup.RPCTapSetupHandler
@@ -18,6 +20,7 @@ import dev.slimevr.protocol.rpc.setup.RPCUtil.getLocalIp
 import dev.slimevr.protocol.rpc.status.RPCStatusHandler
 import dev.slimevr.protocol.rpc.trackingpause.RPCTrackingPause
 import dev.slimevr.tracking.processor.config.SkeletonConfigOffsets
+import dev.slimevr.tracking.processor.stayaligned.adjust.TrackerYaw.trackerYaw
 import dev.slimevr.tracking.trackers.TrackerPosition.Companion.getByBodyPart
 import dev.slimevr.tracking.trackers.TrackerStatus
 import dev.slimevr.tracking.trackers.TrackerUtils.getTrackerForSkeleton
@@ -193,6 +196,18 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 			RpcMessage.ChangeMagToggleRequest,
 		) { conn: GenericConnection, messageHeader: RpcMessageHeader ->
 			this.onChangeMagToggleRequest(conn, messageHeader)
+		}
+
+		registerPacketListener(
+			RpcMessage.DetectStayAlignedRelaxedPoseRequest,
+		) { conn: GenericConnection, messageHeader: RpcMessageHeader ->
+			this.onDetectStayAlignedRelaxedPoseRequest(conn, messageHeader)
+		}
+
+		registerPacketListener(
+			RpcMessage.ResetStayAlignedRelaxedPoseRequest,
+		) { conn: GenericConnection, messageHeader: RpcMessageHeader ->
+			this.onResetStayAlignedRelaxedPoseRequest(conn, messageHeader)
 		}
 	}
 
@@ -566,6 +581,88 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 			fbb.finish(createRPCMessage(fbb, RpcMessage.MagToggleResponse, response))
 			conn.send(fbb.dataBuffer())
 		}
+	}
+
+	private fun onDetectStayAlignedRelaxedPoseRequest(conn: GenericConnection, messageHeader: RpcMessageHeader) {
+		val resetRequest =
+			messageHeader.message(ResetStayAlignedRelaxedPoseRequest()) as? ResetStayAlignedRelaxedPoseRequest
+				?: return
+
+		val humanSkeleton = api.server.humanPoseManager.skeleton
+
+		var upperLegAngle = Angle.ZERO
+		humanSkeleton.leftUpperLegTracker?.let { left ->
+			humanSkeleton.rightUpperLegTracker?.let { right ->
+				upperLegAngle = (trackerYaw(left) - trackerYaw(right)) * 0.5f
+			}
+		}
+
+		var lowerLegAngle = Angle.ZERO
+		humanSkeleton.leftLowerLegTracker?.let { left ->
+			humanSkeleton.rightLowerLegTracker?.let { right ->
+				lowerLegAngle = (trackerYaw(left) - trackerYaw(right)) * 0.5f
+			}
+		}
+
+		var footAngle = Angle.ZERO
+		humanSkeleton.leftFootTracker?.let { left ->
+			humanSkeleton.rightFootTracker?.let { right ->
+				footAngle = (trackerYaw(left) - trackerYaw(right)) * 0.5f
+			}
+		}
+
+		setStayAlignedRelaxedPose(conn, resetRequest.pose(), upperLegAngle, lowerLegAngle, footAngle)
+	}
+
+	private fun onResetStayAlignedRelaxedPoseRequest(conn: GenericConnection, messageHeader: RpcMessageHeader) {
+		val resetRequest =
+			messageHeader.message(ResetStayAlignedRelaxedPoseRequest()) as? ResetStayAlignedRelaxedPoseRequest
+				?: return
+
+		setStayAlignedRelaxedPose(conn, resetRequest.pose(), Angle.ZERO, Angle.ZERO, Angle.ZERO)
+	}
+
+	private fun setStayAlignedRelaxedPose(
+		conn: GenericConnection,
+		pose: Int,
+		upperLegAngle: Angle,
+		lowerLegAngle: Angle,
+		footAngle: Angle,
+	) {
+		val configManager = api.server.configManager
+		val config = configManager.vrConfig.stayAlignedConfig
+
+		when (pose) {
+			StayAlignedRelaxedPose.STANDING -> {
+				config.standingUpperLegAngle = upperLegAngle.toDegreeAngle()
+				config.standingLowerLegAngle = lowerLegAngle.toDegreeAngle()
+				config.standingFootAngle = footAngle.toDegreeAngle()
+			}
+
+			StayAlignedRelaxedPose.SITTING -> {
+				config.sittingUpperLegAngle = upperLegAngle.toDegreeAngle()
+				config.sittingLowerLegAngle = lowerLegAngle.toDegreeAngle()
+				config.sittingFootAngle = footAngle.toDegreeAngle()
+			}
+
+			StayAlignedRelaxedPose.FLAT -> {
+				config.flatUpperLegAngle = upperLegAngle.toDegreeAngle()
+				config.flatLowerLegAngle = lowerLegAngle.toDegreeAngle()
+				config.flatFootAngle = footAngle.toDegreeAngle()
+			}
+		}
+
+		configManager.saveConfig()
+
+		LogManager.info("[setStayAlignedRelaxedPose] pose=$pose upperLeg=$upperLegAngle lowerLeg=$lowerLegAngle foot=$footAngle")
+
+		// Notify frontends that the settings have changed
+		// TODO: How do we reuse the code from RPCSettingsHandler.onSettingsRequest?
+		val fbb = FlatBufferBuilder(32)
+		val settings = RPCSettingsBuilder.createSettingsResponse(fbb, api.server)
+		val outbound = createRPCMessage(fbb, RpcMessage.SettingsResponse, settings)
+		fbb.finish(outbound)
+		conn.send(fbb.dataBuffer())
 	}
 
 	companion object {

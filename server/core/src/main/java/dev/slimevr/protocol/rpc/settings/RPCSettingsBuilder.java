@@ -354,6 +354,27 @@ public class RPCSettingsBuilder {
 			);
 	}
 
+	public static int createYawCorrectionSettings(
+		FlatBufferBuilder fbb,
+		StayAlignedConfig config
+	) {
+		return YawCorrectionSettings
+			.createYawCorrectionSettings(
+				fbb,
+				config.getEnabled(),
+				config.getYawCorrectionPerSec().toDeg(),
+				config.getStandingUpperLegAngle().toDeg(),
+				config.getStandingLowerLegAngle().toDeg(),
+				config.getStandingFootAngle().toDeg(),
+				config.getSittingUpperLegAngle().toDeg(),
+				config.getSittingLowerLegAngle().toDeg(),
+				config.getSittingFootAngle().toDeg(),
+				config.getFlatUpperLegAngle().toDeg(),
+				config.getFlatLowerLegAngle().toDeg(),
+				config.getFlatFootAngle().toDeg()
+			);
+	}
+
 	public static int createSettingsResponse(FlatBufferBuilder fbb, VRServer server) {
 		ISteamVRBridge bridge = server.getVRBridge(ISteamVRBridge.class);
 
@@ -408,7 +429,11 @@ public class RPCSettingsBuilder {
 						fbb,
 						server.configManager.getVrConfig().getResetsConfig()
 					),
-				0
+				RPCSettingsBuilder
+					.createYawCorrectionSettings(
+						fbb,
+						server.configManager.getVrConfig().getStayAlignedConfig()
+					)
 			);
 	}
 }

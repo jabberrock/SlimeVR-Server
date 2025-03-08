@@ -193,6 +193,7 @@ widget-imu_visualizer-rotation_raw = Raw rotation
 widget-imu_visualizer-rotation_preview = Preview rotation
 widget-imu_visualizer-acceleration = Acceleration
 widget-imu_visualizer-position = Position
+widget-imu_visualizer-stay_aligned = Stay Aligned
 
 ## Widget: Skeleton Visualizer
 widget-skeleton_visualizer-preview = Skeleton preview
@@ -217,6 +218,7 @@ tracker-table-column-temperature = Temp. °C
 tracker-table-column-linear-acceleration = Accel. X/Y/Z
 tracker-table-column-rotation = Rotation X/Y/Z
 tracker-table-column-position = Position X/Y/Z
+tracker-table-column-stay_aligned = Stay Aligned
 tracker-table-column-url = URL
 
 ## Tracker rotation
@@ -346,6 +348,7 @@ mounting_selection_menu-close = Close
 settings-sidebar-title = Settings
 settings-sidebar-general = General
 settings-sidebar-tracker_mechanics = Tracker mechanics
+settings-sidebar-stay_aligned = Stay Aligned
 settings-sidebar-fk_settings = Tracking settings
 settings-sidebar-gesture_control = Gesture control
 settings-sidebar-interface = Interface
@@ -435,6 +438,31 @@ settings-general-tracker_mechanics-use_mag_on_all_trackers-description =
     Uses magnetometer on all trackers that have a compatible firmware for it, reducing drift in stable magnetic environments.
     Can be disabled per tracker in the tracker's settings. <b>Please don't shutdown any of the trackers while toggling this!</b>
 settings-general-tracker_mechanics-use_mag_on_all_trackers-label = Use magnetometer on trackers
+
+settings-general-stay_aligned = Stay Aligned
+settings-general-stay_aligned-description = Keeps your trackers aligned by slowly adjusting the yaw of your trackers.
+settings-general-stay_aligned-warnings-drift_compensation = ⚠ Please disable "Drift Compensation". Stay Aligned and Drift Compensation try to solve the same problem and only one should be enabled.
+settings-general-stay_aligned-enabled-label = Enabled
+settings-general-stay_aligned-setup-label = Setup Stay Aligned
+settings-general-stay_aligned-amount-label = Maximum yaw adjustment rate
+settings-general-stay_aligned-amount-description = Pick a rate depending on how good your IMU is: 0.10 deg/s for ICM45686, LSM6DSV or BNO085; 0.20 deg/s for LSM6DSR or BMI270; and 0.40 deg/s for BMI160.
+settings-general-stay_aligned-relaxed_body_angles-label = Relaxed Body Angles
+settings-general-stay_aligned-relaxed_body_angles-description = Stay Aligned needs to capture your pose when you're standing, sitting and lying down comfortably. After a full and mounting reset, stand comfortably, then press "Detect angles". Next, sit down in your couch or chair comfortably, then press "Detect angles". Finally, sit on the floor comfortably, then press "Detect angles". (pose={$pose}, thigh={$upperLeg}, ankle={$lowerLeg} foot={$foot})
+settings-general-stay_aligned-relaxed_body_angles-standing-label = Standing
+settings-general-stay_aligned-relaxed_body_angles-sitting-label = Sitting in chair
+settings-general-stay_aligned-relaxed_body_angles-flat-label = Sitting on floor, and lying on back
+settings-general-stay_aligned-relaxed_body_angles-upper_leg_angle = Thigh
+settings-general-stay_aligned-relaxed_body_angles-lower_leg_angle = Ankle
+settings-general-stay_aligned-relaxed_body_angles-foot_angle = Foot
+settings-general-stay_aligned-relaxed_body_angles-auto_detect = Detect angles
+settings-general-stay_aligned-relaxed_body_angles-reset = Reset angles
+settings-general-stay_aligned-pose-unknown = Unknown
+settings-general-stay_aligned-pose-standing = Standing
+settings-general-stay_aligned-pose-sitting_in_chair = Sitting in chair
+settings-general-stay_aligned-pose-sitting_on_ground = Sitting on ground
+settings-general-stay_aligned-pose-lying_on_back = Lying on back
+settings-general-stay_aligned-pose-kneeling = Kneeling
+
 
 ## FK/Tracking settings
 settings-general-fk_settings = Tracking settings

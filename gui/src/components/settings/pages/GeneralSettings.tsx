@@ -16,6 +16,7 @@ import {
   SettingsResponseT,
   SteamVRTrackersSettingT,
   TapDetectionSettingsT,
+  YawCorrectionSettingsT,
 } from 'solarxr-protocol';
 import { useConfig } from '@/hooks/config';
 import { useWebsocketAPI } from '@/hooks/websocket-api';
@@ -33,8 +34,9 @@ import {
 import { HandsWarningModal } from '@/components/settings/HandsWarningModal';
 import { MagnetometerToggleSetting } from './MagnetometerToggleSetting';
 import { DriftCompensationModal } from '@/components/settings/DriftCompensationModal';
+import { StayAlignedSettings } from './components/StayAlignedSettings';
 
-interface SettingsForm {
+export interface SettingsForm {
   trackers: {
     waist: boolean;
     chest: boolean;
@@ -103,6 +105,19 @@ interface SettingsForm {
     saveMountingReset: boolean;
     resetHmdPitch: boolean;
   };
+  yawCorrectionSettings: {
+    enabled: boolean;
+    amountInDegPerSec: number;
+    standingUpperLegAngle: number;
+    standingLowerLegAngle: number;
+    standingFootAngle: number;
+    sittingUpperLegAngle: number;
+    sittingLowerLegAngle: number;
+    sittingFootAngle: number;
+    flatUpperLegAngle: number;
+    flatLowerLegAngle: number;
+    flatFootAngle: number;
+  };
 }
 
 const defaultValues: SettingsForm = {
@@ -168,6 +183,19 @@ const defaultValues: SettingsForm = {
     yawResetSmoothTime: 0.0,
     saveMountingReset: false,
     resetHmdPitch: false,
+  },
+  yawCorrectionSettings: {
+    enabled: false,
+    amountInDegPerSec: 0.2,
+    standingUpperLegAngle: 0.0,
+    standingLowerLegAngle: 0.0,
+    standingFootAngle: 0.0,
+    sittingUpperLegAngle: 0.0,
+    sittingLowerLegAngle: 0.0,
+    sittingFootAngle: 0.0,
+    flatUpperLegAngle: 0.0,
+    flatLowerLegAngle: 0.0,
+    flatFootAngle: 0.0,
   },
 };
 
@@ -297,6 +325,30 @@ export function GeneralSettings() {
     driftCompensation.maxResets = values.driftCompensation.maxResets;
     settings.driftCompensation = driftCompensation;
 
+    const yawCorrectionSettings = new YawCorrectionSettingsT();
+    yawCorrectionSettings.enabled = values.yawCorrectionSettings.enabled;
+    yawCorrectionSettings.amountInDegPerSec =
+      values.yawCorrectionSettings.amountInDegPerSec;
+    yawCorrectionSettings.standingUpperLegAngle =
+      values.yawCorrectionSettings.standingUpperLegAngle;
+    yawCorrectionSettings.standingLowerLegAngle =
+      values.yawCorrectionSettings.standingLowerLegAngle;
+    yawCorrectionSettings.standingFootAngle =
+      values.yawCorrectionSettings.standingFootAngle;
+    yawCorrectionSettings.sittingUpperLegAngle =
+      values.yawCorrectionSettings.sittingUpperLegAngle;
+    yawCorrectionSettings.sittingLowerLegAngle =
+      values.yawCorrectionSettings.sittingLowerLegAngle;
+    yawCorrectionSettings.sittingFootAngle =
+      values.yawCorrectionSettings.sittingFootAngle;
+    yawCorrectionSettings.flatUpperLegAngle =
+      values.yawCorrectionSettings.flatUpperLegAngle;
+    yawCorrectionSettings.flatLowerLegAngle =
+      values.yawCorrectionSettings.flatLowerLegAngle;
+    yawCorrectionSettings.flatFootAngle =
+      values.yawCorrectionSettings.flatFootAngle;
+    settings.yawCorrectionSettings = yawCorrectionSettings;
+
     if (values.resetsSettings) {
       const resetsSettings = new ResetsSettingsT();
       resetsSettings.resetMountingFeet =
@@ -418,6 +470,10 @@ export function GeneralSettings() {
 
     if (settings.resetsSettings) {
       formData.resetsSettings = settings.resetsSettings;
+    }
+
+    if (settings.yawCorrectionSettings) {
+      formData.yawCorrectionSettings = settings.yawCorrectionSettings;
     }
 
     reset({ ...getValues(), ...formData });
@@ -822,6 +878,7 @@ export function GeneralSettings() {
             />
           </>
         </SettingsPagePaneLayout>
+        <StayAlignedSettings getValues={getValues} control={control} />
         <SettingsPagePaneLayout
           icon={<WrenchIcon></WrenchIcon>}
           id="fksettings"

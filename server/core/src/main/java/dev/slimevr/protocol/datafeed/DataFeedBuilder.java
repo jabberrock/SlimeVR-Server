@@ -2,12 +2,14 @@ package dev.slimevr.protocol.datafeed;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 import dev.slimevr.tracking.trackers.Device;
+import dev.slimevr.tracking.processor.stayaligned.state.StayAlignedTrackerState;
 import dev.slimevr.tracking.trackers.Tracker;
 import dev.slimevr.tracking.trackers.udp.UDPDevice;
 import io.github.axisangles.ktmath.Quaternion;
 import io.github.axisangles.ktmath.Vector3;
 import solarxr_protocol.data_feed.Bone;
 import solarxr_protocol.data_feed.DataFeedUpdate;
+import solarxr_protocol.data_feed.StayAlignedState;
 import solarxr_protocol.data_feed.device_data.DeviceData;
 import solarxr_protocol.data_feed.device_data.DeviceDataMaskT;
 import solarxr_protocol.data_feed.tracker.TrackerData;
@@ -177,6 +179,21 @@ public class DataFeedBuilder {
 		return Temperature.createTemperature(fbb, tracker.getTemperature());
 	}
 
+	public static int createTrackerStayAligned(
+		FlatBufferBuilder fbb,
+		StayAlignedTrackerState state
+	) {
+		StayAlignedState.startStayAlignedState(fbb);
+
+		StayAlignedState.addYawCorrectionInDeg(fbb, state.getYawCorrectionInDeg());
+		StayAlignedState.addLockedErrorInDeg(fbb, state.getLockedErrorInDeg());
+		StayAlignedState.addCenterErrorInDeg(fbb, state.getCenterErrorInDeg());
+		StayAlignedState.addNeighborErrorInDeg(fbb, state.getNeighborErrorInDeg());
+		StayAlignedState.addLocked(fbb, state.getLockedRotation() != null);
+
+		return StayAlignedState.endStayAlignedState(fbb);
+	}
+
 	public static int createTrackerData(
 		FlatBufferBuilder fbb,
 		TrackerDataMaskT mask,
@@ -184,6 +201,11 @@ public class DataFeedBuilder {
 	) {
 		int trackerInfosOffset = DataFeedBuilder.createTrackerInfos(fbb, mask.getInfo(), tracker);
 		int trackerIdOffset = DataFeedBuilder.createTrackerId(fbb, tracker);
+
+		int stayAlignedOffset = 0;
+		if (mask.getStayAligned()) {
+			stayAlignedOffset = createTrackerStayAligned(fbb, tracker.getStayAligned());
+		}
 
 		TrackerData.startTrackerData(fbb);
 
@@ -232,6 +254,9 @@ public class DataFeedBuilder {
 		}
 		if (mask.getTps()) {
 			TrackerData.addTps(fbb, (int) tracker.getTps());
+		}
+		if (mask.getStayAligned()) {
+			TrackerData.addStayAligned(fbb, stayAlignedOffset);
 		}
 
 		return TrackerData.endTrackerData(fbb);

@@ -163,7 +163,8 @@ public class TapDetectionManager {
 			tapped && System.nanoTime() - yawResetDetector.getDetectionTime() > yawResetDelayNs
 		) {
 			if (humanPoseManager != null)
-				humanPoseManager.resetTrackersYaw(resetSourceName);
+				humanPoseManager
+					.resetTrackersYaw(resetSourceName);
 			else
 				skeleton.resetTrackersYaw(resetSourceName);
 
@@ -184,7 +185,8 @@ public class TapDetectionManager {
 			tapped && System.nanoTime() - fullResetDetector.getDetectionTime() > fullResetDelayNs
 		) {
 			if (humanPoseManager != null)
-				humanPoseManager.resetTrackersFull(resetSourceName);
+				humanPoseManager
+					.resetTrackersFull(resetSourceName);
 			else
 				skeleton.resetTrackersFull(resetSourceName);
 
