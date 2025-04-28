@@ -61,6 +61,8 @@ class TrackersUDPServer(private val port: Int, name: String, private val tracker
 	private lateinit var socket: DatagramSocket
 	private var lastKeepup = System.currentTimeMillis()
 
+	private val packetLogger = UDPPacketLogger.createNew()
+
 	private fun setUpNewConnection(handshakePacket: DatagramPacket, handshake: UDPPacket3Handshake) {
 		LogManager.info("[TrackerServer] Handshake received from ${handshakePacket.address}:${handshakePacket.port}")
 		val addr = handshakePacket.address
@@ -294,6 +296,7 @@ class TrackersUDPServer(private val port: Int, name: String, private val tracker
 					}
 					received = DatagramPacket(rcvBuffer, rcvBuffer.size)
 					socket.receive(received)
+					packetLogger?.add(received)
 					bb.limit(received.length)
 					bb.rewind()
 					val connection = synchronized(connections) { connectionsByAddress[received.socketAddress] }

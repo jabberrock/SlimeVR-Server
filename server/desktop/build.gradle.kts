@@ -73,6 +73,7 @@ tasks.shadowJar {
 		exclude(dependency("net.java.dev.jna:.*:.*"))
 		exclude(dependency("com.google.flatbuffers:flatbuffers-java:.*"))
 
+		exclude(project(":server:core"))
 		exclude(project(":solarxr-protocol"))
 	}
 	archiveBaseName.set("slimevr")

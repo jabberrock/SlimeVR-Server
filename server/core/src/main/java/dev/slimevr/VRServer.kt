@@ -28,6 +28,7 @@ import dev.slimevr.tracking.processor.HumanPoseManager
 import dev.slimevr.tracking.processor.skeleton.HumanSkeleton
 import dev.slimevr.tracking.trackers.*
 import dev.slimevr.tracking.trackers.udp.TrackersUDPServer
+import dev.slimevr.tracking.trackers.udp.UDPPacketLogger
 import dev.slimevr.util.ann.VRServerThread
 import dev.slimevr.websocketapi.WebSocketVRBridge
 import io.eiren.util.ann.ThreadSafe
