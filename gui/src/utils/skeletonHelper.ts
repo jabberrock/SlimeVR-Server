@@ -32,7 +32,7 @@ export class BasedSkeletonHelper extends LineSegments2 {
     const colors = [];
 
     const color1 = new Color(0, 0, 1);
-    const color2 = new Color(0, 1, 0);
+    const color2 = new Color(0, 0, 0);
 
     for (let i = 0; i < bones.length; i++) {
       const bone = bones[i];
@@ -43,7 +43,8 @@ export class BasedSkeletonHelper extends LineSegments2 {
         if (bone.parent instanceof BoneKind) {
           const color = bone.parent.boneColor;
           colors.push(color.r, color.g, color.b);
-          colors.push(color.r, color.g, color.b);
+          colors.push(color2.r, color2.g, color2.b);
+          // colors.push(color.r, color.g, color.b);
         } else {
           colors.push(color1.r, color1.g, color1.b);
           colors.push(color2.r, color2.g, color2.b);

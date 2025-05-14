@@ -1,10 +1,11 @@
-import { Canvas, Object3DNode, extend, useThree } from '@react-three/fiber';
+import { Canvas, Object3DNode, extend, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Bone } from 'three';
 import { useMemo, useEffect, useState } from 'react';
 import {
   OrbitControls,
   OrthographicCamera,
   PerspectiveCamera,
+  useGLTF,
 } from '@react-three/drei';
 import {
   BoneKind,
@@ -135,6 +136,48 @@ export function ToggleableSkeletonVisualizerWidget({
   );
 }
 
+function Manequin({
+  bones
+}: {
+  bones: Map<BodyPart, BoneT>
+}) {
+  const manequin = useGLTF('/models/manequin.gltf');
+
+  function matchBone(
+    bone: BoneT | undefined,
+    manequinBone: THREE.Object3D | undefined,
+    parentManequinBone?: THREE.Object3D
+  ) {
+    if (bone && bone.headPositionG && bone.rotationG && manequinBone && parentManequinBone) {
+      // const position = Vector3FromVec3fT(bone.headPositionG);
+      // manequinBone.position.copy(parentManequinBone.worldToLocal(position));
+
+      const rotation = QuaternionFromQuatT(bone.rotationG);
+      const parentRotation = new THREE.Quaternion();
+      parentManequinBone.getWorldQuaternion(parentRotation);
+      manequinBone.setRotationFromQuaternion(rotation);
+    }
+  }
+
+  useFrame(() => {
+    const mHip = manequin.scene.getObjectByName('mixamorigHips');
+    const mWaist = manequin.scene.getObjectByName('mixamorigSpine');
+    const mChest = manequin.scene.getObjectByName('mixamorigSpine1');
+    const mUpperChest = manequin.scene.getObjectByName('mixamorigSpine2');
+    const mNeck = manequin.scene.getObjectByName('mixamorigNeck');
+
+    matchBone(bones.get(BodyPart.HIP), mHip, manequin.scene);
+    // matchBone(bones.get(BodyPart.WAIST), mWaist, mHip);
+    // matchBone(bones.get(BodyPart.CHEST), mChest, mWaist);
+    // matchBone(bones.get(BodyPart.UPPER_CHEST), mUpperChest, mChest);
+    // matchBone(bones.get(BodyPart.NECK), mNeck, mUpperChest);
+  });
+
+  return (
+    <primitive object={manequin.scene} />
+  );
+}
+
 export function SkeletonVisualizerWidget() {
   const _bones = useAtomValue(bonesAtom);
 
@@ -194,6 +237,8 @@ export function SkeletonVisualizerWidget() {
     [heightOffset]
   );
 
+
+
   if (!skeleton) return <></>;
   return (
     <ErrorBoundary
@@ -209,6 +254,10 @@ export function SkeletonVisualizerWidget() {
           <SkeletonHelper object={skeleton[0]}></SkeletonHelper>
         </group>
         <primitive object={skeleton[0]} />
+        <Manequin bones={bones} />
+        <hemisphereLight color="gray" />
+        <spotLight position={[0, heightOffset, 0]} />
+        <axesHelper />
         <PerspectiveCamera
           makeDefault
           position={[3, 2.5, -3]}
