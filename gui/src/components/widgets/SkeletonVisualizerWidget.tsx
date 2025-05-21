@@ -1,10 +1,11 @@
-import { Canvas, Object3DNode, extend, useThree } from '@react-three/fiber';
+import { Canvas, Object3DNode, extend, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Bone } from 'three';
 import { useMemo, useEffect, useState } from 'react';
 import {
   OrbitControls,
   OrthographicCamera,
   PerspectiveCamera,
+  useGLTF,
 } from '@react-three/drei';
 import {
   BoneKind,
@@ -21,6 +22,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Typography } from '@/components/commons/Typography';
 import { useAtomValue } from 'jotai';
 import { bonesAtom } from '@/store/app-store';
+import { Vector3FromVec3fT } from '@/maths/vector3';
 
 extend({ BasedSkeletonHelper });
 
@@ -135,6 +137,82 @@ export function ToggleableSkeletonVisualizerWidget({
   );
 }
 
+type MannequinBone = {
+  bodyPart: BodyPart,
+  mBone: THREE.Object3D,
+  mBoneLength: number,
+  invert: boolean
+};
+
+type MannequinBones = Map<BodyPart, MannequinBone>;
+
+function Mannequin({
+  bones,
+  headPosition,
+}: {
+  bones: Map<BodyPart, BoneT>,
+  headPosition: THREE.Vector3,
+}) {
+  const mannequin = useGLTF('/models/mannequin.gltf');
+
+  const mannequinBones = useMemo(() => {
+    const m: MannequinBones = new Map();
+
+    function addBone(bodyPart: BodyPart, boneName: string, boneLength: number, invert: boolean) {
+      const mBone = mannequin.scene.getObjectByName(boneName);
+      if (mBone) {
+        m.set(bodyPart, { bodyPart, mBone, mBoneLength: boneLength, invert });
+      }
+    }
+
+    addBone(BodyPart.HIP, 'mixamorigHips', 0.105592, true);
+    addBone(BodyPart.WAIST, 'mixamorigSpine', 0.100027, true);
+    addBone(BodyPart.CHEST, 'mixamorigSpine1', 0.0932207, true);
+    addBone(BodyPart.UPPER_CHEST, 'mixamorigSpine2', 0.137015, true);
+    addBone(BodyPart.NECK, 'mixamorigNeck', 0.0976436, true);
+    addBone(BodyPart.LEFT_UPPER_LEG, 'mixamorigLeftUpLeg', 0.443714, false);
+    addBone(BodyPart.LEFT_LOWER_LEG, 'mixamorigLeftLeg', 0.445279, false);
+    addBone(BodyPart.LEFT_FOOT, 'mixamorigLeftFoot', 0.138169, false);
+    addBone(BodyPart.RIGHT_UPPER_LEG, 'mixamorigRightUpLeg', 0.443714, false);
+    addBone(BodyPart.RIGHT_LOWER_LEG, 'mixamorigRightLeg', 0.445279, false);
+    addBone(BodyPart.RIGHT_FOOT, 'mixamorigRightFoot', 0.138169, false);
+
+    return m;
+
+  }, [mannequin]);
+
+  function matchBone({bodyPart, mBone, mBoneLength, invert}: MannequinBone) {
+    const bone = bones.get(bodyPart)
+    if (!bone) { return; }
+    const p = Vector3FromVec3fT(bone.headPositionG);
+    const q = QuaternionFromQuatT(bone.rotationG);
+
+    // The SlimeVR bone position is always at the top of the bone, and the
+    // quaternion points "up" (why??).
+    if (invert) {
+      // The mannequin bone wants to point the other way, so shift the position
+      // to the tail of the SlimeVR bone.
+      p.sub(new THREE.Vector3(0, mBoneLength, 0).applyQuaternion(q));
+    } else {
+      // We need the mannequin bone rotation to point in the direction of the
+      // bone, so rotate the bone around its x axis.
+      q.multiply(new THREE.Quaternion(1, 0, 0, 0))
+    }
+
+    mBone.position.copy(headPosition).add(p);
+    mBone.setRotationFromQuaternion(q);
+    mBone.scale.set(1, bone.boneLength / mBoneLength, 1);
+  }
+
+  useFrame(() => {
+    mannequinBones.forEach(b => matchBone(b))
+  });
+
+  return (
+    <primitive object={mannequin.scene} />
+  );
+}
+
 export function SkeletonVisualizerWidget() {
   const _bones = useAtomValue(bonesAtom);
 
@@ -194,6 +272,8 @@ export function SkeletonVisualizerWidget() {
     [heightOffset]
   );
 
+  const headPosition = new THREE.Vector3(0, heightOffset, 0);
+
   if (!skeleton) return <></>;
   return (
     <ErrorBoundary
@@ -205,10 +285,13 @@ export function SkeletonVisualizerWidget() {
     >
       <Canvas className={classNames('container mx-auto')}>
         <gridHelper args={[10, 50, GROUND_COLOR, GROUND_COLOR]} />
-        <group position={[0, heightOffset, 0]} quaternion={yawReset}>
+        <group position={headPosition} quaternion={yawReset}>
           <SkeletonHelper object={skeleton[0]}></SkeletonHelper>
         </group>
         <primitive object={skeleton[0]} />
+        <Mannequin bones={bones} headPosition={headPosition} />
+        <hemisphereLight color="gray" />
+        <spotLight position={headPosition} />
         <PerspectiveCamera
           makeDefault
           position={[3, 2.5, -3]}
