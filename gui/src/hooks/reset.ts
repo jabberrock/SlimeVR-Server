@@ -6,6 +6,7 @@ import {
   ResetStatus,
   ResetType,
   RpcMessage,
+  StartVideoTrackerCalibrationRequestT,
 } from 'solarxr-protocol';
 import { useWebsocketAPI } from './websocket-api';
 import { useAtomValue } from 'jotai';
@@ -45,10 +46,8 @@ export function useReset(
   const parts = BODY_PARTS_GROUPS['group' in options ? options.group : 'default'];
 
   const triggerReset = () => {
-    const req = new ResetRequestT();
-    req.resetType = options.type;
-    req.bodyParts = parts;
-    sendRPCPacket(RpcMessage.ResetRequest, req);
+    const req = new StartVideoTrackerCalibrationRequestT();
+    sendRPCPacket(RpcMessage.StartVideoTrackerCalibrationRequest, req);
 
     Sentry.metrics.count('reset_click', 1, {
       attributes: {

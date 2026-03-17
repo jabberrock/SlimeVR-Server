@@ -31,6 +31,9 @@ import dev.slimevr.tracking.processor.HumanPoseManager
 import dev.slimevr.tracking.processor.skeleton.HumanSkeleton
 import dev.slimevr.tracking.trackers.*
 import dev.slimevr.tracking.trackers.udp.TrackersUDPServer
+import dev.slimevr.tracking.videocalibration.VideoCalibrationService
+import dev.slimevr.tracking.videocalibration.sources.MDNSRegistry
+import dev.slimevr.tracking.videocalibration.steps.VideoCalibrator
 import dev.slimevr.trackingchecklist.TrackingChecklistManager
 import dev.slimevr.util.ann.VRServerThread
 import dev.slimevr.websocketapi.WebSocketVRBridge
@@ -73,6 +76,8 @@ class VRServer @JvmOverloads constructor(
 	private val newTrackersConsumers: MutableList<Consumer<Tracker>> = FastList()
 	private val trackerStatusListeners: MutableList<TrackerStatusListener> = FastList()
 	private val onTick: MutableList<Runnable> = FastList()
+	private val onTickListeners = FastList<ServerTickListener>()
+	private val tickListenersToRemove = mutableListOf<ServerTickListener>()
 	private val lock = acquireMulticastLock()
 	val oSCRouter: OSCRouter
 
@@ -124,6 +129,9 @@ class VRServer @JvmOverloads constructor(
 	val networkProfileChecker: NetworkProfileChecker
 
 	val serverGuards = ServerGuards()
+
+	val mdnsRegistry = MDNSRegistry(MDNSRegistry.ServiceType.entries)
+	var videoCalibrationService: VideoCalibrationService? = null
 
 	init {
 		// UwU
@@ -208,6 +216,14 @@ class VRServer @JvmOverloads constructor(
 		onTick.add(runnable)
 	}
 
+	fun addTickListener(listener: ServerTickListener) {
+		onTickListeners.add(listener)
+	}
+
+	fun removeTickListener(listener: ServerTickListener) {
+		tickListenersToRemove.add(listener)
+	}
+
 	@ThreadSafe
 	fun addNewTrackerConsumer(consumer: Consumer<Tracker>) {
 		queueTask {
@@ -237,6 +253,7 @@ class VRServer @JvmOverloads constructor(
 	@VRServerThread
 	override fun run() {
 		trackersServer.start()
+		mdnsRegistry.start()
 		while (true) {
 			// final long start = System.currentTimeMillis();
 			fpsTimer.update()
@@ -247,6 +264,11 @@ class VRServer @JvmOverloads constructor(
 			for (task in onTick) {
 				task.run()
 			}
+			for (listener in onTickListeners) {
+				listener.onTick()
+			}
+			onTickListeners.removeAll(tickListenersToRemove)
+			tickListenersToRemove.clear()
 			for (bridge in bridges) {
 				bridge.dataRead()
 			}
@@ -259,6 +281,7 @@ class VRServer @JvmOverloads constructor(
 			}
 			vrcOSCHandler.update()
 			vMCHandler.update()
+			videoCalibrationService?.onTick()
 			// final long time = System.currentTimeMillis() - start;
 			try {
 				sleep(1) // 1000Hz
@@ -267,6 +290,7 @@ class VRServer @JvmOverloads constructor(
 				break
 			}
 		}
+		mdnsRegistry.stop()
 	}
 
 	@ThreadSafe
