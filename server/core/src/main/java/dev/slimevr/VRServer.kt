@@ -32,6 +32,7 @@ import dev.slimevr.tracking.processor.HumanPoseManager
 import dev.slimevr.tracking.processor.skeleton.HumanSkeleton
 import dev.slimevr.tracking.trackers.*
 import dev.slimevr.tracking.trackers.udp.TrackersUDPServer
+import dev.slimevr.tracking.videocalibration.mdns.MDNSBrowser
 import dev.slimevr.trackingchecklist.TrackingChecklistManager
 import dev.slimevr.util.ann.VRServerThread
 import dev.slimevr.websocketapi.WebSocketVRBridge
@@ -74,8 +75,9 @@ class VRServer @JvmOverloads constructor(
 	private val tasks: Queue<Runnable> = LinkedBlockingQueue()
 	private val newTrackersConsumers: MutableList<Consumer<Tracker>> = FastList()
 	private val trackerStatusListeners: MutableList<TrackerStatusListener> = FastList()
-	private val onTick: MutableList<Runnable> = FastList()
-	private val lock = acquireMulticastLock()
+	private val onTick = mutableListOf<Runnable>()
+	private val onTickToRemove = mutableListOf<Runnable>()
+	private val runOnceOnTick = mutableListOf<Runnable>()
 	val oSCRouter: OSCRouter
 
 	@JvmField
@@ -129,6 +131,8 @@ class VRServer @JvmOverloads constructor(
 	val networkProfileChecker: NetworkProfileChecker
 
 	val serverGuards = ServerGuards()
+
+	var mdnsBrowser = MDNSBrowser(listOf(MDNSBrowser.ServiceTypes.SIMPLE_WEBCAM))
 
 	init {
 		deviceManager = DeviceManager(this)
@@ -210,7 +214,23 @@ class VRServer @JvmOverloads constructor(
 	}
 
 	fun addOnTick(runnable: Runnable) {
-		onTick.add(runnable)
+		synchronized(onTick) {
+			onTick.add(runnable)
+		}
+	}
+
+	fun removeOnTick(runnable: Runnable) {
+		// Don't immediate remove because we could be in the middle of iterating
+		// over onTick and running them
+		synchronized(onTickToRemove) {
+			onTickToRemove.add(runnable)
+		}
+	}
+
+	fun addRunOnceOnTick(runnable: Runnable) {
+		synchronized(runOnceOnTick) {
+			runOnceOnTick.add(runnable)
+		}
 	}
 
 	@ThreadSafe
@@ -241,6 +261,7 @@ class VRServer @JvmOverloads constructor(
 
 	@VRServerThread
 	override fun run() {
+		mdnsBrowser.start()
 		trackersServer.start()
 		while (true) {
 			// final long start = System.currentTimeMillis();
@@ -249,8 +270,20 @@ class VRServer @JvmOverloads constructor(
 				val task = tasks.poll() ?: break
 				task.run()
 			} while (true)
-			for (task in onTick) {
-				task.run()
+			synchronized(onTick) {
+				for (task in onTick) {
+					task.run()
+				}
+				synchronized(onTickToRemove) {
+					onTick.removeAll(onTickToRemove)
+					onTickToRemove.clear()
+				}
+			}
+			synchronized(runOnceOnTick) {
+				for (runnable in runOnceOnTick) {
+					runnable.run()
+				}
+				runOnceOnTick.clear()
 			}
 			for (bridge in bridges) {
 				bridge.dataRead()
@@ -272,6 +305,7 @@ class VRServer @JvmOverloads constructor(
 				break
 			}
 		}
+		mdnsBrowser.close()
 	}
 
 	@ThreadSafe

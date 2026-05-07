@@ -805,26 +805,43 @@ class HumanSkeleton(
 	 */
 	private fun updateSpineTransforms() {
 		if (hasSpineTracker) {
-			// Upper chest and chest tracker
-			getFirstAvailableTracker(upperChestTracker, chestTracker, waistTracker, hipTracker)?.let {
-				upperChestBone.setRotation(it.getRotation())
-				chestTrackerBone.setRotation(it.getRotation())
-			}
+			val upperChestTracker = upperChestTracker
+			val chestTracker = chestTracker
+			val waistTracker = waistTracker
+			val hipTracker = hipTracker
+			if (upperChestTracker == null && chestTracker != null && waistTracker == null && hipTracker != null) {
+				val chestRotation = chestTracker.getRotation()
+				val hipRotation = hipTracker.getRotation()
 
-			// Chest
-			getFirstAvailableTracker(chestTracker, upperChestTracker, waistTracker, hipTracker)?.let {
-				chestBone.setRotation(it.getRotation())
-			}
+				upperChestBone.setRotation(chestRotation)
+				chestBone.setRotation(chestRotation)
+				waistBone.setRotation(chestRotation.interpR(hipRotation, 0.5f))
+				hipBone.setRotation(hipRotation)
 
-			// Waist
-			getFirstAvailableTracker(waistTracker, chestTracker, hipTracker, upperChestTracker)?.let {
-				waistBone.setRotation(it.getRotation())
-			}
+				chestTrackerBone.setRotation(chestRotation)
+				hipTrackerBone.setRotation(hipRotation)
+			} else {
+				// Upper chest and chest tracker
+				getFirstAvailableTracker(upperChestTracker, chestTracker, waistTracker, hipTracker)?.let {
+					upperChestBone.setRotation(it.getRotation())
+					chestTrackerBone.setRotation(it.getRotation())
+				}
 
-			// Hip and hip tracker
-			getFirstAvailableTracker(hipTracker, waistTracker, chestTracker, upperChestTracker)?.let {
-				hipBone.setRotation(it.getRotation())
-				hipTrackerBone.setRotation(it.getRotation())
+				// Chest
+				getFirstAvailableTracker(chestTracker, upperChestTracker, waistTracker, hipTracker)?.let {
+					chestBone.setRotation(it.getRotation())
+				}
+
+				// Waist
+				getFirstAvailableTracker(waistTracker, chestTracker, hipTracker, upperChestTracker)?.let {
+					waistBone.setRotation(it.getRotation())
+				}
+
+				// Hip and hip tracker
+				getFirstAvailableTracker(hipTracker, waistTracker, chestTracker, upperChestTracker)?.let {
+					hipBone.setRotation(it.getRotation())
+					hipTrackerBone.setRotation(it.getRotation())
+				}
 			}
 		} else if (headTracker != null) {
 			// Align with neck's yaw

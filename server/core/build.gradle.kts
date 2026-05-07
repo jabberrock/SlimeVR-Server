@@ -83,6 +83,14 @@ dependencies {
 	implementation("com.mayakapps.kache:kache:2.1.0")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
+	implementation("dev.onvoid.webrtc:webrtc-java:0.14.0")
+	implementation("dev.onvoid.webrtc:webrtc-java:0.14.0:windows-x86_64")
+	implementation("org.jmdns:jmdns:3.6.3")
+	implementation("io.ktor:ktor-client-core:3.4.1")
+	implementation("io.ktor:ktor-client-cio:3.4.1")
+	implementation("io.ktor:ktor-client-content-negotiation:3.4.1")
+	implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.1")
+
 	api("com.github.loucass003:EspflashKotlin:v0.11.0")
 
 	// Allow the use of reflection
@@ -90,6 +98,9 @@ dependencies {
 
 	// Jitpack
 	implementation("com.github.SlimeVR:oscquery-kt:566a0cba58")
+
+	// Include all .jar files under lib
+	implementation(fileTree("lib") { include("*.jar") })
 
 	testImplementation(kotlin("test"))
 	// Use JUnit test framework

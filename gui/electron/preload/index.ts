@@ -32,10 +32,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setTranslations: () => {},
   openDialog: (options) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_DIALOG, options),
   saveDialog: (options) => ipcRenderer.invoke(IPC_CHANNELS.SAVE_DIALOG, options),
-  openConfigFolder: async () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_FILE, await ipcRenderer.invoke(IPC_CHANNELS.GET_FOLDER, 'config')),
-  openLogsFolder: async () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_FILE, await ipcRenderer.invoke(IPC_CHANNELS.GET_FOLDER, 'logs')),
+  openConfigFolder: async () =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.OPEN_FILE,
+      await ipcRenderer.invoke(IPC_CHANNELS.GET_FOLDER, 'config')
+    ),
+  openLogsFolder: async () =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.OPEN_FILE,
+      await ipcRenderer.invoke(IPC_CHANNELS.GET_FOLDER, 'logs')
+    ),
   openFile: (path) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_FILE, path),
   ghGet: (req) => ipcRenderer.invoke(IPC_CHANNELS.GH_FETCH, req),
   setPresence: (options) => ipcRenderer.invoke(IPC_CHANNELS.DISCORD_PRESENCE, options),
-  getInstallDir: () => ipcRenderer.invoke(IPC_CHANNELS.GET_FOLDER, 'exe')
+  getInstallDir: () => ipcRenderer.invoke(IPC_CHANNELS.GET_FOLDER, 'exe'),
+  webcamOffer: (request) => ipcRenderer.invoke(IPC_CHANNELS.WEBCAM_OFFER, request),
 } satisfies IElectronAPI);

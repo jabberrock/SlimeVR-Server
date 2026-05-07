@@ -273,9 +273,74 @@ navbar-home = Home
 navbar-body_proportions = Body Proportions
 navbar-trackers_assign = Tracker Assignment
 navbar-mounting = Mounting Calibration
+navbar-video_calibration = Video Calibration
 navbar-onboarding = Setup Wizard
 navbar-settings = Settings
 navbar-connect_trackers = Connect Trackers
+
+## Video calibration
+video-calibration-loading = Looking for a webcam...
+video-calibration-connecting = Connecting to the webcam video stream...
+video-calibration-no_webcam = No webcam is currently available.
+video-calibration-error = Could not start the webcam video stream.
+video-calibration-sidebar-title = Video Calibration
+video-calibration-sidebar-simple-webcam-setup = Please start the "Simple Webcam" app on your Android phone.
+
+video-calibration-sidebar-qr-alt = QR code that links to Simple Webcam on GitHub
+video-calibration-qr-loading = Generating QR…
+
+video-calibration-sidebar-skeleton-match-intro = Compare SlimeVR skeleton to your body:
+video-calibration-sidebar-action-align-camera-label = Align Camera
+
+video-calibration-sidebar-manual-calibration-intro = Compare with manual calibration:
+video-calibration-sidebar-action-mounting-reset = Mounting Reset
+video-calibration-sidebar-action-feet-reset = Feet Reset
+
+video-calibration-sidebar-automated-intro = Automated calibration:
+video-calibration-sidebar-action-align-trackers-label = Align Trackers
+video-calibration-sidebar-action-optimize-proportions-label = Optimize Body Proportions
+
+video-calibration-sidebar-description = Start calibration and monitor its progress here.
+video-calibration-sidebar-description-active = Follow the guided steps next to your camera preview.
+video-calibration-sidebar-user-height = Height: { $height }
+video-calibration-sidebar-user-height-unknown = Height: —
+video-calibration-sidebar-user-height-body-proportions-hint = If your height is incorrect, please change it in the "Body Proportions" tab.
+video-calibration-start = Start Calibration
+video-calibration-status-label = Status
+video-calibration-status-idle = Waiting to start calibration.
+video-calibration-status-starting = Waiting for calibration progress...
+video-calibration-status-calibrate_camera = Calibrating camera
+video-calibration-status-capture_forward_pose = Capture forward pose
+video-calibration-status-capture_bent_over_pose = Capture bent-over pose
+video-calibration-status-calibrate_trackers = Calibrating trackers
+video-calibration-status-calibrate_skeleton_offsets = Calibrating skeleton offsets
+video-calibration-status-done = Calibration complete
+video-calibration-status-connecting_to_server = Connecting to server
+video-calibration-status-connecting_to_webcam = Connecting to webcam
+video-calibration-status-waiting_for_user_start = Waiting for user to start
+video-calibration-status-solving_camera_extrinsic = Solving camera extrinsic
+video-calibration-status-capturing_forward_pose = Capturing forward pose
+video-calibration-status-capturing_leaning_forward_pose = Capturing leaning-forward pose
+video-calibration-status-aligning_upper_body_trackers = Aligning upper body trackers
+video-calibration-status-aligning_remaining_trackers = Aligning remaining trackers
+video-calibration-status-optimizing_body_proportions = Optimizing body proportions
+video-calibration-status-complete = Calibration complete
+video-calibration-instruction-calibrate_camera = Wave your right hand to the right side, and above your head
+video-calibration-instruction-capture_forward_pose = Stand straight and face forward
+video-calibration-instruction-capture_bent_over_pose = Carefully lean forward
+video-calibration-instruction-calibrate_trackers = Take steps while turning around
+video-calibration-demo-video-placeholder = Action demo (placeholder)
+video-calibration-guidance-no-instruction = Please select an option to the right
+video-calibration-camera-label = Camera
+video-calibration-camera-available = Camera data available
+video-calibration-camera-unavailable = Camera data is not available yet.
+video-calibration-camera-resolution = Resolution
+video-calibration-camera-focal_length = Focal length
+video-calibration-camera-principal_point = Principal point
+video-calibration-done-trackers = Done trackers
+video-calibration-pending-trackers = Pending trackers
+video-calibration-none = None
+video-calibration-error-label = Error
 
 ## Biovision hierarchy recording
 bvh-start_recording = Record BVH

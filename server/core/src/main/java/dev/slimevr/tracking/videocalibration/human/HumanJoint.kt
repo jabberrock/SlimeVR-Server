@@ -1,0 +1,22 @@
+package dev.slimevr.tracking.videocalibration.human
+
+enum class HumanJoint {
+	LEFT_SHOULDER,
+	RIGHT_SHOULDER,
+	LEFT_HIP,
+	RIGHT_HIP,
+	LEFT_KNEE,
+	RIGHT_KNEE,
+	LEFT_ANKLE,
+	RIGHT_ANKLE,
+	LEFT_ELBOW,
+	RIGHT_ELBOW,
+	LEFT_WRIST,
+	RIGHT_WRIST,
+	LEFT_HEEL,
+	RIGHT_HEEL,
+	LEFT_BIG_TOE,
+	RIGHT_BIG_TOE,
+	LEFT_SMALL_TOE,
+	RIGHT_SMALL_TOE,
+}

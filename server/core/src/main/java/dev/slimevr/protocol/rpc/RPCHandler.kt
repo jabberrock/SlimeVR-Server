@@ -28,16 +28,26 @@ import dev.slimevr.tracking.trackers.TrackerPosition
 import dev.slimevr.tracking.trackers.TrackerPosition.Companion.getByBodyPart
 import dev.slimevr.tracking.trackers.TrackerStatus
 import dev.slimevr.tracking.trackers.TrackerUtils.getTrackerForSkeleton
+import dev.slimevr.tracking.videocalibration.VideoCalibration
+import dev.slimevr.tracking.videocalibration.VideoCalibrationSolarXRNotifier
+import dev.slimevr.tracking.videocalibration.human.RTMPoseEstimator
+import dev.slimevr.tracking.videocalibration.human.RTMPoseModel
+import dev.slimevr.tracking.videocalibration.mdns.MDNSBrowser
+import dev.slimevr.tracking.videocalibration.preview.VideoRequester
+import dev.slimevr.tracking.videocalibration.vision.SimpleWebcam
 import io.eiren.util.logging.LogManager
 import io.github.axisangles.ktmath.Quaternion
 import kotlinx.coroutines.*
 import solarxr_protocol.MessageBundle
 import solarxr_protocol.datatypes.TransactionId
 import solarxr_protocol.rpc.*
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 
 class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeader>() {
 	private val mainScope = CoroutineScope(SupervisorJob())
+	private val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+	private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
 	init {
 		RPCResetHandler(this, api)
@@ -150,6 +160,16 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 		registerPacketListener(
 			RpcMessage.ResetStayAlignedRelaxedPoseRequest,
 			::onResetStayAlignedRelaxedPoseRequest,
+		)
+
+		registerPacketListener(
+			RpcMessage.ConnectToVideoCalibrationRequest,
+			::onConnectToVideoCalibrationRequest,
+		)
+
+		registerPacketListener(
+			RpcMessage.StartVideoCalibrationRequest,
+			::onStartVideoCalibrationRequest,
 		)
 	}
 
@@ -608,6 +628,83 @@ class RPCHandler(private val api: ProtocolAPI) : ProtocolHandler<RpcMessageHeade
 		LogManager.info("[resetStayAlignedRelaxedPose] pose=$pose")
 
 		sendSettingsChangedResponse(conn, messageHeader)
+	}
+
+	private fun sendConnectToVideoCalibrationResponse(conn: GenericConnection, answerSDP: String, respondTo: RpcMessageHeader) {
+		val fbb = FlatBufferBuilder(2048)
+		val answerSDPOffset = fbb.createString(answerSDP)
+		val responseOffset = ConnectToVideoCalibrationResponse.createConnectToVideoCalibrationResponse(fbb, answerSDPOffset)
+		val messageOffset = createRPCMessage(fbb, RpcMessage.ConnectToVideoCalibrationResponse, responseOffset, respondTo)
+		fbb.finish(messageOffset)
+		conn.send(fbb.dataBuffer())
+	}
+
+	private var videoCalibration = AtomicReference<VideoCalibration?>()
+
+	private fun onConnectToVideoCalibrationRequest(conn: GenericConnection, messageHeader: RpcMessageHeader) {
+		val request =
+			messageHeader.message(ConnectToVideoCalibrationRequest()) as? ConnectToVideoCalibrationRequest
+				?: return
+
+		LogManager.info("Received video calibration request...")
+
+		defaultScope.launch {
+			val videoSink =
+				VideoRequester(request.offerSdp()) { answerSDP ->
+					sendConnectToVideoCalibrationResponse(
+						conn,
+						answerSDP,
+						messageHeader,
+					)
+				}
+
+			val videoCalibration =
+				VideoCalibration(
+					server = api.server,
+					requester = videoSink,
+					visionSourceFactory = { vc, cc ->
+						val mdnsBrowser = api.server.mdnsBrowser
+						val endpoint = mdnsBrowser.getEndpoints(MDNSBrowser.ServiceTypes.SIMPLE_WEBCAM).firstOrNull()
+							?: error("Simple Webcam not found via mDNS")
+						SimpleWebcam(endpoint, vc, cc)
+					},
+					humanPoseEstimatorFactory = { RTMPoseEstimator(RTMPoseModel.modelPath()) },
+					initialHmdHeight = api.server.humanPoseManager.skeletonConfigManager.userHeightFromOffsets,
+					initialSkeletonOffsets = api.server.humanPoseManager.skeletonConfigManager.configOffsets.toMap(),
+					observer = VideoCalibrationSolarXRNotifier(conn),
+				)
+
+			if (this@RPCHandler.videoCalibration.compareAndSet(null, videoCalibration)) {
+				try {
+					videoCalibration.run()
+				} catch (e: Exception) {
+					LogManager.warning("Video calibrator encountered exception: ${e.message}")
+				} finally {
+					this@RPCHandler.videoCalibration.set(null)
+				}
+			} else {
+				LogManager.info("Video calibration already in progress, skipped")
+			}
+		}
+	}
+
+	private fun onStartVideoCalibrationRequest(conn: GenericConnection, messageHeader: RpcMessageHeader) {
+		val request =
+			messageHeader.message(StartVideoCalibrationRequest()) as? StartVideoCalibrationRequest
+				?: return
+
+		val videoCalibrator = this.videoCalibration.get() ?: return
+
+		when (request.process()) {
+			VideoCalibrationProcess.ALIGN_CAMERA ->
+				videoCalibrator.startCalibration(dev.slimevr.tracking.videocalibration.VideoCalibrationProcess.Process.ALIGN_CAMERA_ONLY)
+
+			VideoCalibrationProcess.ALIGN_TRACKERS ->
+				videoCalibrator.startCalibration(dev.slimevr.tracking.videocalibration.VideoCalibrationProcess.Process.ALIGN_TRACKERS)
+
+			VideoCalibrationProcess.OPTIMIZE_BODY_PROPORTIONS ->
+				videoCalibrator.startCalibration(dev.slimevr.tracking.videocalibration.VideoCalibrationProcess.Process.OPTIMIZE_BODY_PROPORTIONS)
+		}
 	}
 
 	fun sendSettingsChangedResponse(conn: GenericConnection, messageHeader: RpcMessageHeader?) {

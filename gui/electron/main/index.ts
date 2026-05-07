@@ -33,7 +33,7 @@ import { closeLogger, logger } from './logger';
 import { spawn } from 'node:child_process';
 import { discordPresence } from './presence';
 import { options } from './cli';
-import { ServerStatusEvent } from 'electron/preload/interface';
+import { ServerStatusEvent, WebcamOfferRequest } from 'electron/preload/interface';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { MenuItem } from 'electron/main';
 
@@ -64,6 +64,13 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let mainWindow: BrowserWindow | null = null;
+
+function buildWebcamOfferUrl(host: string, port: number) {
+  const normalizedHost =
+    host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+
+  return `http://${normalizedHost}:${port}/offer`;
+}
 
 handleIpc(IPC_CHANNELS.GH_FETCH, async (e, options) => {
   if (options.type === 'fw-releases') {
@@ -161,6 +168,31 @@ handleIpc(IPC_CHANNELS.DISCORD_PRESENCE, async (e, options) => {
   } else if (!options.enable && discordPresence.state.ready) {
     discordPresence.destroy();
   }
+});
+
+handleIpc(IPC_CHANNELS.WEBCAM_OFFER, async (e, request: WebcamOfferRequest) => {
+  const response = await fetch(buildWebcamOfferUrl(request.host, request.port), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sdp: request.sdp,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Offer request failed with status ${response.status}`);
+  }
+
+  const body = (await response.json()) as { sdp?: unknown };
+  if (typeof body.sdp !== 'string' || body.sdp.length === 0) {
+    throw new Error('Webcam response did not contain an SDP answer');
+  }
+
+  return {
+    sdp: body.sdp,
+  };
 });
 
 handleIpc(IPC_CHANNELS.OPEN_FILE, (e, folder) => {
@@ -468,7 +500,22 @@ let isQuitting = false;
 app.whenReady().then(async () => {
   protocol.handle('app', (request) => {
     const { pathname } = new URL(request.url);
-    const filePath = path.normalize(join(__dirname, '../renderer', pathname));
+    /** Strip root-relative marker so join() stays under renderer (posix paths begin with `/`). */
+    let relativePath = pathname.replace(/^[\\/]+/, '');
+    relativePath = path.normalize(relativePath);
+
+    const rendererRoot = path.normalize(join(__dirname, '..', 'renderer'));
+    const filePath = path.normalize(join(rendererRoot, relativePath));
+    const pathWithinRoot = path.relative(rendererRoot, filePath);
+
+    if (pathWithinRoot.startsWith('..') || path.isAbsolute(pathWithinRoot)) {
+      logger.warn(
+        { pathname, rendererRoot },
+        'app protocol rejected path outside renderer'
+      );
+      return new Response(null, { status: 403 });
+    }
+
     return net.fetch(pathToFileURL(filePath).toString(), { headers: request.headers });
   });
 

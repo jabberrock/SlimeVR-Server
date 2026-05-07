@@ -427,6 +427,7 @@ fun createSettingsResponse(fbb: FlatBufferBuilder, server: VRServer): Int {
 			),
 			createHIDSettings(fbb, server.configManager.vrConfig.hidConfig),
 			0,
+			0,
 		)
 }
 
