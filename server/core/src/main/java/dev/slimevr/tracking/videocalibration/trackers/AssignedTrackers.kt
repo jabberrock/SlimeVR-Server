@@ -129,10 +129,10 @@ data class AssignedTrackers(
 				error("$trackerPosition is not an IMU tracker")
 			}
 
-			val ping = tracker.ping
-			if (ping == null || ping >= 30L) {
-				error("$trackerPosition has no ping, or ping >= 30ms")
-			}
+//			val ping = tracker.ping
+//			if (ping == null || ping >= 30L) {
+//				error("$trackerPosition has no ping, or ping >= 30ms")
+//			}
 
 			return tracker
 		}
