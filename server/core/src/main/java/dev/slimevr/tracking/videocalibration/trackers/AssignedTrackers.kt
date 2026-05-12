@@ -50,10 +50,10 @@ data class AssignedTrackers(
 		listOfNotNull(
 			leftUpperLeg,
 			leftLowerLeg,
-			leftFoot,
+//			leftFoot,
 			rightUpperLeg,
 			rightLowerLeg,
-			rightFoot,
+//			rightFoot,
 			leftUpperArm,
 			leftLowerArm,
 			rightUpperArm,
