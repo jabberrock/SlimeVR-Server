@@ -1,6 +1,8 @@
 package dev.slimevr.tracking.videocalibration.human
 
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.createTempDirectory
 import kotlin.io.path.createTempFile
 import kotlin.io.path.outputStream
 
@@ -17,6 +19,24 @@ object RTMPoseModel {
 				loaded = true
 			}
 			return tempFile
+		}
+	}
+
+	private val directMLLoaded = false
+
+	fun loadDirectML() {
+		synchronized(lock) {
+			if (!directMLLoaded) {
+				val resource = this::class.java.getResourceAsStream("/DirectML.dll")
+					?: error("Missing DirectML.dll")
+
+				val tempDir = createTempDirectory("DirectML")
+				val tempFile = tempDir.resolve("DirectML.dll")
+				tempFile.outputStream().use { resource.copyTo(it) }
+				tempFile.toFile().deleteOnExit()
+
+				System.load(tempFile.absolutePathString())
+			}
 		}
 	}
 
