@@ -172,7 +172,7 @@ class VideoCalibration(
 							HumanPoseSnapshot(videoImage.timestamp, joints, camera.get())
 						} catch (e: Exception) {
 							logger.warning("Failed to estimate human pose", e)
-							return@launch
+							continue // Skip the bad frame, keep the loop alive
 						}
 
 					database.addHumanPoseSnapshot(humanPoseSnapshot)
