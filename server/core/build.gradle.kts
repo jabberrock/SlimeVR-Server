@@ -104,7 +104,7 @@ dependencies {
 	if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
     implementation(fileTree("lib") { include("*.jar") })  // Custom DirectML build, windows only
 	} else {
-		implementation("com.microsoft.onnxruntime:onnxruntime:1.26.0")  // Stock CPU jar(slow but works) for linux/mac
+		implementation("com.microsoft.onnxruntime:onnxruntime_gpu:1.20.0")  // Stock jar for linux/mac
 	}
 
 	testImplementation(kotlin("test"))

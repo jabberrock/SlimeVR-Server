@@ -31,6 +31,12 @@ class RTMPoseEstimator(modelPath: Path) : HumanPoseEstimator {
 
 		val options = OrtSession.SessionOptions()
 		options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+		options.setIntraOpNumThreads(Runtime.getRuntime().availableProcessors() / 2)
+		try {
+			options.addCUDA(0)
+		} catch (e: Exception) {
+			logger.warning("CUDA unavailable, falling back to CPU", e)
+		}
 
 		try {
 			logger.info("Trying to enable DirectML inference...")
