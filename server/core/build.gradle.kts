@@ -101,7 +101,11 @@ dependencies {
 	implementation("com.github.SlimeVR:oscquery-kt:566a0cba58")
 
 	// Include all .jar files under lib
-	implementation(fileTree("lib") { include("*.jar") })
+	if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+    implementation(fileTree("lib") { include("*.jar") })  // Custom DirectML build, windows only
+	} else {
+		implementation("com.microsoft.onnxruntime:onnxruntime:1.26.0")  // Stock CPU jar(slow but works) for linux/mac
+	}
 
 	testImplementation(kotlin("test"))
 	// Use JUnit test framework
