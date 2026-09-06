@@ -85,6 +85,7 @@ dependencies {
 
 	implementation("dev.onvoid.webrtc:webrtc-java:0.14.0")
 	implementation("dev.onvoid.webrtc:webrtc-java:0.14.0:windows-x86_64")
+	implementation("dev.onvoid.webrtc:webrtc-java:0.14.0:linux-x86_64")
 	implementation("org.jmdns:jmdns:3.6.3")
 	implementation("io.ktor:ktor-client-core:3.4.1")
 	implementation("io.ktor:ktor-client-cio:3.4.1")
